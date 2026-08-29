@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#17324d">
-  <title>Finanzas de Gloriana · v2</title>
+  <title>Finanzas de Gloriana · v1.3.1</title>
   <style>
     :root{
       --navy:#6f2148;--teal:#c4497b;--bg:#fff7fb;--card:#ffffff;--text:#3b2330;
@@ -116,7 +116,7 @@
 <div class="app">
 <header>
   <div class="topbar">
-    <div class="brand">Finanzas de Gloriana <small style="opacity:.72">v2</small></div>
+    <div class="brand">Finanzas de Gloriana <small style="opacity:.72">v1.3.1</small></div>
     <nav id="nav">
       <button data-view="dashboard" class="active">Inicio</button>
       <button data-view="plan">Presupuesto</button>
@@ -301,7 +301,7 @@
     </div>
   </section>
 </main>
-<footer>Finanzas de Gloriana v1.3 · Presupuesto, movimientos, deudas, por cobrar, capital y metas · Los datos se guardan localmente en este navegador.</footer>
+<footer>Finanzas de Gloriana v1.3.1 · Presupuesto, movimientos, deudas, por cobrar, capital y metas · Los datos se guardan localmente en este navegador.</footer>
 </div>
 
 <dialog id="reserveDialog">
@@ -371,6 +371,27 @@
 <script>
 "use strict";
 const STORAGE_KEY = "gloriana_finanzas_local_v1";
+const UI_STORAGE_KEY = "gloriana_finanzas_ui_v1";
+function loadUiState(){
+  try{
+    const saved=localStorage.getItem(UI_STORAGE_KEY);
+    const parsed=saved?JSON.parse(saved):{};
+    return parsed&&typeof parsed==="object"?parsed:{};
+  }catch{return {}}
+}
+let uiState=loadUiState();
+function saveUiState(){
+  try{localStorage.setItem(UI_STORAGE_KEY,JSON.stringify(uiState))}catch{}
+}
+function planMonthOpenPreference(month){
+  return uiState.planMonths?.[month]!==false;
+}
+function rememberPlanMonthOpen(month,open){
+  if(!month)return;
+  uiState.planMonths=uiState.planMonths||{};
+  uiState.planMonths[month]=!!open;
+  saveUiState();
+}
 
 const CATEGORIES = ["Ingreso principal","Otros ingresos","Tarjetas / acuerdos","Supermercado","Transporte","Salud","Gimnasio","Cuidado personal","Teléfonos","Ocio","Ahorro / inversión","Otros"];
 const EXPENSE_CATEGORIES = CATEGORIES.filter(x=>!["Ingreso principal","Otros ingresos"].includes(x));
@@ -855,14 +876,15 @@ function categoryTable(rows){
   }</tbody></table>`
 }
 
-function setPlanMonthOpen(section,open){
+function setPlanMonthOpen(section,open,persist=true){
   if(!section)return;
   const body=section.querySelector(".plan-month-body"),btn=section.querySelector(".plan-month-toggle");
   if(body)body.hidden=!open;
   section.classList.toggle("is-collapsed",!open);
   if(btn){btn.setAttribute("aria-expanded",String(open));btn.textContent=open?"Ocultar detalle":"Ver quincenas"}
+  if(persist)rememberPlanMonthOpen(section.dataset.planMonth,open);
 }
-function setAllPlanMonths(open){document.querySelectorAll("#planMonths .plan-month").forEach(section=>setPlanMonthOpen(section,open))}
+function setAllPlanMonths(open){document.querySelectorAll("#planMonths .plan-month").forEach(section=>setPlanMonthOpen(section,open,true))}
 
 function renderPlan(){
   const q=document.getElementById("planQuarter").value||planningQuarters()[0], rows=getOpeningAndBalances(q);
@@ -943,6 +965,9 @@ function renderPlan(){
   }).join("");
 
   document.getElementById("planMonths").innerHTML=monthHtml||`<div class="empty">Este trimestre todavía no tiene quincenas configuradas.</div>`;
+  document.querySelectorAll("#planMonths .plan-month").forEach(section=>{
+    setPlanMonthOpen(section,planMonthOpenPreference(section.dataset.planMonth),false);
+  });
   document.getElementById("planSummary").textContent=`Saldo final ${money(last)} · diferencia vs. plan ${delta>=0?"+":""}${money(delta)}`;
   document.getElementById("planClosing").innerHTML=`
     <div class="month-kpi"><div class="summary-label">Saldo inicial</div><div class="summary-value">${money(firstOpening)}</div></div>
@@ -1250,7 +1275,7 @@ function bind(){
   document.getElementById("exportBtn").addEventListener("click",()=>download(`respaldo-finanzas-gloriana-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),"application/json"));
   document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change",async e=>{
-    try{const imported=JSON.parse(await e.target.files[0].text());if(!imported.periods||!imported.movements||!imported.debts)throw Error();data=migrateData(imported);save();syncQuarterSelectors();refreshDebtSelect();navigate("dashboard");alert("Respaldo restaurado en Finanzas de Gloriana v1.3.")}catch{alert("El archivo no es un respaldo válido.")}e.target.value=""
+    try{const imported=JSON.parse(await e.target.files[0].text());if(!imported.periods||!imported.movements||!imported.debts)throw Error();data=migrateData(imported);save();syncQuarterSelectors();refreshDebtSelect();navigate("dashboard");alert("Respaldo restaurado en Finanzas de Gloriana v1.3.1.")}catch{alert("El archivo no es un respaldo válido.")}e.target.value=""
   });
   document.getElementById("resetBtn").addEventListener("click",()=>{if(confirm("Esto eliminará todos los cambios locales. ¿Continuar?")){data=migrateData(clone(initialData));save();syncQuarterSelectors();refreshDebtSelect();navigate("dashboard")}});
 
