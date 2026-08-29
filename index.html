@@ -1,0 +1,1280 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#17324d">
+  <title>Finanzas de Gloriana · v1.3</title>
+  <style>
+    :root{
+      --navy:#6f2148;--teal:#c4497b;--bg:#fff7fb;--card:#ffffff;--text:#3b2330;
+      --muted:#806070;--border:#ead4df;--green:#f8e8f0;--yellow:#fff0f5;
+      --red:#fde4ec;--blue:#f5ddea;--shadow:0 8px 24px rgba(111,33,72,.10);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .app{min-height:100vh}
+    header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;box-shadow:var(--shadow)}
+    .topbar{max-width:1440px;margin:auto;display:flex;align-items:center;gap:18px;padding:14px 20px}
+    .brand{font-weight:800;letter-spacing:.2px;white-space:nowrap}
+    nav{display:flex;gap:4px;overflow:auto;scrollbar-width:none}
+    nav button{border:0;background:transparent;color:#dbe7ef;padding:9px 12px;border-radius:8px;white-space:nowrap}
+    nav button.active,nav button:hover{background:rgba(255,255,255,.14);color:#fff}
+    .header-actions{margin-left:auto;display:flex;gap:8px}
+    .header-actions button{border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;padding:8px 10px;border-radius:8px}
+    main{max-width:1440px;margin:auto;padding:22px}
+    .view{display:none}.view.active{display:block}
+    h1{font-size:1.55rem;margin:0 0 4px}.sub{color:var(--muted);margin:0 0 20px}
+    .toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .toolbar label,.field label{display:block;font-size:.78rem;color:var(--muted);font-weight:700;margin-bottom:5px}
+    input,select,textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 10px;background:#fff;color:var(--text)}
+    textarea{min-height:78px;resize:vertical}
+    input:focus,select:focus,textarea:focus{outline:2px solid rgba(47,116,119,.2);border-color:var(--teal)}
+    .btn{border:0;border-radius:8px;padding:9px 13px;font-weight:700;background:var(--teal);color:#fff}
+    .btn.secondary{background:#fff;color:var(--navy);border:1px solid var(--border)}
+    .btn.danger{background:#b42318}.btn.small{padding:6px 9px;font-size:.8rem}
+    .grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{background:var(--card);border:1px solid #e4e7ec;border-radius:12px;box-shadow:var(--shadow);padding:16px}
+    .kpi .label{font-size:.78rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .kpi .value{font-size:1.55rem;font-weight:850;margin-top:8px}
+    .kpi.good{background:var(--green)}.kpi.warn{background:var(--yellow)}.kpi.bad{background:var(--red)}
+    .charts{grid-template-columns:1fr 1fr;margin-top:16px}
+    canvas{width:100%;height:280px;display:block}
+    .table-card{padding:0;overflow:hidden}.table-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .table-wrap{overflow:auto}
+    table{border-collapse:collapse;width:100%;min-width:900px}
+    th{background:var(--teal);color:#fff;text-align:center;font-size:.78rem;padding:10px 8px;position:sticky;top:0;z-index:1}
+    td{padding:8px;border-bottom:1px solid #eaecf0;font-size:.86rem;vertical-align:middle}
+    tr:hover td{background:#fafafa}.month-start td{border-top:3px solid var(--navy)}.actions{display:flex;gap:6px;flex-wrap:wrap}
+    td.num{text-align:right;font-variant-numeric:tabular-nums}
+    td.center{text-align:center}.muted{color:var(--muted)}
+    .editable{min-width:95px;border:1px solid transparent;background:transparent;padding:6px;border-radius:6px}
+    .editable:hover,.editable:focus{border-color:var(--border);background:#fff}
+    .positive{color:#8f2455;font-weight:700}.negative{color:#b4233b;font-weight:700}
+    .form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .form-grid .wide{grid-column:span 2}.form-actions{display:flex;gap:8px;align-items:end}
+    .pill{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:.75rem;font-weight:700;background:var(--blue);color:var(--navy)}
+    .progress{height:8px;background:#eaecf0;border-radius:999px;overflow:hidden;min-width:100px}
+    .progress>span{display:block;height:100%;background:var(--teal)}
+    .note{background:var(--yellow);border:1px solid #eadf9b;padding:12px;border-radius:10px;color:#594d00;margin-bottom:16px}
+    .empty{padding:30px;text-align:center;color:var(--muted)}
+    dialog{border:0;border-radius:14px;padding:0;max-width:620px;width:calc(100% - 30px);box-shadow:0 24px 60px rgba(0,0,0,.25)}
+    dialog::backdrop{background:rgba(17,24,39,.45)}
+    .dialog-body{padding:20px}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+    .danger-zone{border:1px solid #f4b4ae;background:#fff5f4}.reconcile{border-left:4px solid var(--teal)}.reconcile-row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.delta{font-weight:800}
+    footer{max-width:1440px;margin:0 auto;padding:0 22px 24px;color:var(--muted);font-size:.78rem}
+    @media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.form-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:680px){.topbar{align-items:flex-start;flex-wrap:wrap}.header-actions{margin-left:0}.kpis{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}main{padding:14px}.brand{width:100%}}
+
+    /* Presupuesto v1.2: trimestre visible, meses separados y mini tablas por quincena */
+    .plan-quarter-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+    .plan-quarter-summary .summary-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 14px;box-shadow:var(--shadow);min-width:0}
+    .summary-label{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .summary-value{font-size:1.12rem;font-weight:850;margin-top:5px;overflow-wrap:anywhere}
+    .plan-months{display:grid;gap:18px}
+    .plan-month{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+    .plan-month-header{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:15px 16px;border-bottom:1px solid var(--border);background:#fffafd}
+    .plan-month-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.plan-month-title h2{font-size:1.08rem;margin:0}
+    .plan-month-sub{margin-top:5px;color:var(--muted);font-size:.82rem}
+    .plan-month-body{padding:14px 16px 16px}.plan-month-body[hidden]{display:none}
+    .month-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:14px}
+    .month-kpi{background:#fff9fc;border:1px solid var(--border);border-radius:9px;padding:9px 10px;min-width:0}
+    .month-kpi .summary-label{font-size:.66rem}.month-kpi .summary-value{font-size:.94rem}
+    .fortnight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .fortnight-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:0;background:#fff}
+    .fortnight-head{padding:12px 13px;background:var(--blue);border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .fortnight-head strong{display:block;color:var(--navy)}.fortnight-head small{color:var(--muted)}
+    .fortnight-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:11px 13px;border-bottom:1px solid var(--border)}
+    .fortnight-meta .meta-item{min-width:0}.fortnight-meta label{display:block;font-size:.67rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.035em;margin-bottom:4px}
+    .fortnight-meta .meta-value{font-weight:800;font-size:.9rem}.fortnight-meta .editable{width:100%;min-width:0;background:#fff;border-color:var(--border)}
+    .fortnight-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse}
+    .fortnight-table th{position:static;padding:8px 12px;font-size:.72rem;text-align:left}.fortnight-table th:last-child{text-align:right;width:42%}
+    .fortnight-table td{padding:7px 12px}.fortnight-table td:last-child{text-align:right}.fortnight-table .editable{width:100%;min-width:0;text-align:right;border-color:var(--border);background:#fff}
+    .fortnight-total{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 13px;border-top:1px solid var(--border);background:#fffafd;align-items:center}
+    .fortnight-total strong:last-child{text-align:right;font-variant-numeric:tabular-nums}
+    .plan-month-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .plan-month-compact-balance{display:none;align-items:center;gap:8px;background:#fff9fc;border:1px solid var(--border);border-radius:9px;padding:7px 10px;white-space:nowrap}
+    .plan-month-compact-balance span{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.035em}.plan-month-compact-balance strong{font-size:.98rem;font-variant-numeric:tabular-nums}
+    .plan-month.is-collapsed .plan-month-compact-balance{display:flex}.plan-month.is-collapsed .plan-month-header{border-bottom:0}.plan-month-toggle{white-space:nowrap}
+    .plan-closing{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .receivable-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}
+    .receivable-status{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:.75rem;font-weight:800}.receivable-status.pending{background:var(--yellow);color:#6b5700}.receivable-status.paid{background:var(--green);color:#365f42}
+    .receivable-paid td{opacity:.68}.receivable-actions{display:flex;gap:6px;flex-wrap:wrap}
+    .capital-card{border-left:4px solid var(--navy)}.goal-card{border-left:4px solid var(--teal)}
+    .reserve-tag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:.75rem;font-weight:800;background:#f6edf2;color:var(--navy)}
+    .reserve-tag.protected{background:#f3dce8}.reserve-tag.goal{background:#f8e8f0}
+    @media(max-width:1000px){.plan-quarter-summary,.month-kpis,.plan-closing{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:820px){.fortnight-grid{grid-template-columns:1fr}.receivable-kpis{grid-template-columns:1fr}}
+    @media(max-width:680px){.plan-quarter-summary,.month-kpis,.plan-closing{grid-template-columns:1fr}.plan-month-header{align-items:flex-start;flex-direction:column}.plan-month-actions{width:100%;justify-content:space-between}.plan-month-compact-balance{white-space:normal}.fortnight-meta{grid-template-columns:1fr}}
+
+    @media print{header,.toolbar,.btn,footer{display:none!important}main{max-width:none;padding:0}.view{display:none!important}.view.active{display:block!important}.card{box-shadow:none}}
+  </style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="topbar">
+    <div class="brand">Finanzas de Gloriana <small style="opacity:.72">v1.3</small></div>
+    <nav id="nav">
+      <button data-view="dashboard" class="active">Inicio</button>
+      <button data-view="plan">Presupuesto</button>
+      <button data-view="movements">Movimientos</button>
+      <button data-view="debts">Deudas</button>
+      <button data-view="receivables">Por cobrar</button>
+      <button data-view="capital">Capital y metas</button>
+      <button data-view="reports">Reportes</button>
+    </nav>
+    <div class="header-actions">
+      <button id="exportBtn" title="Guardar un respaldo JSON">Respaldar</button>
+      <button id="importBtn" title="Restaurar un respaldo JSON">Restaurar</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="view active" id="view-dashboard">
+    <h1>Resumen financiero</h1>
+    <p class="sub">Tu presupuesto, movimientos y deudas en un solo lugar. Esta versión inicia completamente en blanco y guarda todo localmente.</p>
+    <div class="toolbar">
+      <div><label>Vista</label>
+        <select id="dashboardLevel">
+          <option value="fortnight">Quincena</option>
+          <option value="month">Mes</option>
+          <option value="quarter" selected>Trimestre</option>
+        </select>
+      </div>
+      <div><label>Periodo</label><select id="dashboardPeriod"></select></div>
+      <button class="btn" id="reconcileBtn">Actualizar saldo real</button>
+      <button class="btn secondary" id="printBtn">Imprimir / PDF</button>
+    </div>
+    <div class="grid kpis" id="kpiGrid"></div>
+    <div class="card reconcile" id="reconcileStatus" style="margin-top:16px"></div>
+    <div class="grid charts">
+      <div class="card"><strong>Egresos: presupuesto vs. real</strong><canvas id="expenseChart"></canvas></div>
+      <div class="card"><strong>Flujo de caja</strong><canvas id="cashChart"></canvas></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <strong>Estado por categoría</strong>
+      <div class="table-wrap" id="dashboardCategories"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-plan">
+    <h1>Presupuesto por trimestre</h1>
+    <p class="sub">Mantén la visión trimestral y revisa cada mes dividido en sus dos quincenas, sin desplazamiento horizontal.</p>
+    <div class="toolbar">
+      <div><label>Trimestre</label><select id="planQuarter"></select></div>
+      <button class="btn" id="newQuarterBtn">Crear trimestre</button>
+      <button class="btn secondary" id="duplicateQuarterBtn">Duplicar trimestre</button>
+      <button class="btn secondary" id="expandPlanBtn" type="button">Ver todo</button>
+      <button class="btn secondary" id="collapsePlanBtn" type="button">Compactar</button>
+    </div>
+    <div class="note"><strong>Regla de quincenas:</strong> la 1.ª quincena comienza el día 1 y la 2.ª comienza el día 15 de cada mes. <strong>Proyección adaptativa:</strong> cuando actualizas el saldo real, ese monto se convierte en el nuevo punto de partida y la herramienta recalcula las quincenas futuras.</div>
+    <div class="plan-quarter-summary" id="planQuarterSummary"></div>
+    <div class="plan-months" id="planMonths"></div>
+    <div class="card" style="margin-top:18px">
+      <div class="table-head"><strong>Cierre del trimestre</strong><span class="pill" id="planSummary"></span></div>
+      <div class="plan-closing" id="planClosing" style="padding:14px 16px 16px"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-movements">
+    <h1>Movimientos reales</h1>
+    <p class="sub">Registra ingresos, gastos y pagos de deuda. Esto alimenta automáticamente los reportes.</p>
+    <div class="card" style="margin-bottom:16px">
+      <form id="movementForm" class="form-grid">
+        <div class="field"><label>Fecha</label><input type="date" id="mDate" required></div>
+        <div class="field"><label>Tipo</label><select id="mType" required></select></div>
+        <div class="field"><label>Categoría</label><select id="mCategory" required></select></div>
+        <div class="field"><label>Deuda / acreedor</label><select id="mDebt"></select></div>
+        <div class="field"><label>Cuenta</label><select id="mAccount"></select></div>
+        <div class="field wide"><label>Descripción</label><input id="mDescription" placeholder="Ej. almuerzo, pago mínimo, salario"></div>
+        <div class="field"><label>Monto en colones</label><input id="mAmount" type="number" min="0" step="1" required></div>
+        <div class="form-actions"><button class="btn" type="submit">Registrar</button></div>
+      </form>
+    </div>
+    <div class="toolbar">
+      <div><label>Vista</label>
+        <select id="movementLevel">
+          <option value="fortnight">Quincena</option>
+          <option value="month">Mes</option>
+          <option value="quarter" selected>Trimestre</option>
+        </select>
+      </div>
+      <div><label>Periodo</label><select id="movementPeriod"></select></div>
+      <div><label>Tipo</label><select id="movementTypeFilter"><option value="">Todos</option></select></div>
+      <button class="btn secondary" id="exportMovementsCsv">Exportar CSV</button>
+    </div>
+    <div class="card table-card">
+      <div class="table-head"><strong>Historial</strong><span class="pill" id="movementCount"></span></div>
+      <div class="table-wrap"><table id="movementTable"></table></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-debts">
+    <h1>Control de deudas</h1>
+    <p class="sub">Tarjetas, préstamo y deuda familiar. Los pagos registrados reducen el saldo estimado.</p>
+    <div class="note"><strong>Pagado registrado</strong> suma únicamente los movimientos creados con tipo <em>Pago deuda</em> y vinculados a esa deuda. Usa el botón “Registrar pago” de cada fila para que el vínculo quede correcto. El saldo restante es una estimación: actualiza el saldo base cuando entren intereses o cargos nuevos.</div>
+    <div class="toolbar"><button class="btn" id="addDebtBtn">Agregar deuda</button></div>
+    <div class="card table-card">
+      <div class="table-head"><strong>Inventario</strong><span class="pill" id="debtTotal"></span></div>
+      <div class="table-wrap"><table id="debtTable"></table></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-receivables">
+    <h1>Por cobrar</h1>
+    <p class="sub">Lleva el control de dinero que otras personas te deben. Estos registros no cuentan como ingreso hasta que realmente recibas el dinero.</p>
+    <div class="receivable-kpis" id="receivableKpis"></div>
+    <div class="card" style="margin-bottom:16px">
+      <form id="receivableForm" class="form-grid">
+        <input type="hidden" id="rcId">
+        <div class="field"><label>Persona</label><input id="rcPerson" required placeholder="Ej. Maria Onghel"></div>
+        <div class="field wide"><label>Motivo</label><input id="rcReason" required placeholder="Ej. Almuerzo"></div>
+        <div class="field"><label>Fecha</label><input id="rcDate" type="date" required></div>
+        <div class="field"><label>Monto en colones</label><input id="rcAmount" type="number" min="0" step="1" required></div>
+        <div class="field"><label>Estado</label><select id="rcStatus"><option value="pending">Pendiente</option><option value="paid">Pagado</option></select></div>
+        <div class="form-actions"><button class="btn" type="submit" id="rcSubmitBtn">Agregar por cobrar</button><button class="btn secondary" type="button" id="rcCancelEditBtn" hidden>Cancelar edición</button></div>
+      </form>
+    </div>
+    <div class="card table-card">
+      <div class="table-head"><strong>Registro</strong><span class="pill" id="receivableSummary"></span></div>
+      <div class="table-wrap"><table id="receivableTable"></table></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-capital">
+    <h1>Capital y metas</h1>
+    <p class="sub">Separa el dinero reservado de tu saldo disponible para el día a día y lleva el avance de tus metas financieras.</p>
+    <div class="toolbar">
+      <button class="btn" id="addReserveBtn">Agregar fondo</button>
+    </div>
+    <div class="grid kpis" id="capitalKpis"></div>
+    <div class="note" style="margin-top:16px"><strong>Cómo funciona:</strong> un <em>Aporte</em> mueve dinero del saldo operativo a un fondo y no se registra como gasto; un <em>Retiro a operación</em> lo devuelve al saldo operativo. <em>Uso objetivo</em> reduce el fondo porque el dinero salió para cumplir la meta.</div>
+    <div class="card table-card" style="margin-bottom:16px">
+      <div class="table-head"><strong>Fondos y capital</strong><span class="pill" id="reserveTotal"></span></div>
+      <div class="table-wrap"><table id="reserveTable"></table></div>
+    </div>
+    <div class="card">
+      <strong>Registrar movimiento de fondo</strong>
+      <form id="reserveTxnForm" class="form-grid" style="margin-top:12px">
+        <div class="field"><label>Fecha</label><input type="date" id="rtDate" required></div>
+        <div class="field"><label>Fondo</label><select id="rtReserve" required></select></div>
+        <div class="field"><label>Tipo</label><select id="rtType"><option>Aporte</option><option>Retiro a operación</option><option>Uso objetivo</option><option>Rendimiento</option><option>Ajuste</option></select></div>
+        <div class="field"><label>Monto</label><input id="rtAmount" type="number" min="0" step="1" required></div>
+        <div class="field wide"><label>Descripción</label><input id="rtDescription" placeholder="Ej. aporte a viaje, rendimiento, retiro"></div>
+        <div class="form-actions"><button class="btn" type="submit">Registrar</button></div>
+      </form>
+      <div class="table-wrap" style="margin-top:14px"><table id="reserveTxnTable"></table></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-reports">
+    <h1>Reportes</h1>
+    <p class="sub">Comparación del presupuesto con la ejecución real y el saldo proyectado actualizado después de conciliaciones.</p>
+    <div class="toolbar">
+      <div><label>Vista</label>
+        <select id="reportLevel">
+          <option value="fortnight">Quincena</option>
+          <option value="month">Mes</option>
+          <option value="quarter" selected>Trimestre</option>
+        </select>
+      </div>
+      <div><label>Periodo</label><select id="reportPeriod"></select></div>
+      <button class="btn secondary" id="exportReportCsv">Exportar comparativo CSV</button>
+    </div>
+    <div class="card table-card" style="margin-bottom:16px">
+      <div class="table-head"><strong id="reportPeriodTitle">Detalle del periodo</strong></div>
+      <div class="table-wrap"><table id="periodReportTable"></table></div>
+    </div>
+    <div class="card table-card">
+      <div class="table-head"><strong>Por categoría</strong></div>
+      <div class="table-wrap"><table id="categoryReportTable"></table></div>
+    </div>
+    <div class="card danger-zone" style="margin-top:16px">
+      <strong>Datos locales</strong>
+      <p class="muted">La información vive únicamente en este navegador y dispositivo. Conviene generar respaldos con frecuencia.</p>
+      <button class="btn danger" id="resetBtn">Restablecer datos iniciales</button>
+    </div>
+  </section>
+</main>
+<footer>Finanzas de Gloriana v1.3 · Presupuesto, movimientos, deudas, por cobrar, capital y metas · Los datos se guardan localmente en este navegador.</footer>
+</div>
+
+<dialog id="reserveDialog">
+  <div class="dialog-body">
+    <h2 id="reserveDialogTitle">Agregar fondo</h2>
+    <form id="reserveForm" class="form-grid">
+      <input type="hidden" id="fId">
+      <div class="field"><label>Nombre</label><input id="fName" required placeholder="Ej. Viaje, emergencia, inversión"></div>
+      <div class="field"><label>Tipo</label><select id="fType"><option value="protected">Capital protegido</option><option value="goal">Meta / reserva</option></select></div>
+      <div class="field"><label>Meta CRC (opcional)</label><input id="fTarget" type="number" min="0" step="1" value="0"></div>
+      <div class="field"><label>Saldo inicial</label><input id="fOpeningAmount" type="number" min="0" step="1" value="0"></div>
+      <div class="field"><label>Fecha inicial</label><input id="fOpeningDate" type="date" required></div>
+      <div class="field"><label>Ubicación</label><input id="fLocation" placeholder="Ej. MultiMoney, banco, efectivo"></div>
+      <div class="field"><label>Tasa anual % (opcional)</label><input id="fRate" type="number" min="0" step=".01" value="0"></div>
+      <div class="field wide"><label>Notas</label><textarea id="fNotes"></textarea></div>
+      <div class="dialog-actions wide">
+        <button type="button" class="btn secondary" id="cancelReserveBtn">Cancelar</button>
+        <button type="submit" class="btn">Guardar</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="debtDialog">
+  <div class="dialog-body">
+    <h2 id="debtDialogTitle">Agregar deuda</h2>
+    <form id="debtForm" class="form-grid">
+      <input type="hidden" id="dId">
+      <div class="field"><label>Tipo</label><select id="dType"><option>Tarjeta</option><option>Préstamo</option><option>Familiar</option><option>Otra</option></select></div>
+      <div class="field"><label>Nombre / ID</label><input id="dName" required></div>
+      <div class="field"><label>Saldo USD</label><input id="dUsd" type="number" min="0" step=".01" value="0"></div>
+      <div class="field"><label>Saldo CRC</label><input id="dCrc" type="number" min="0" step="1" value="0"></div>
+      <div class="field"><label>Tipo de cambio</label><input id="dFx" type="number" min="1" step="1" value="460"></div>
+      <div class="field"><label>Límite USD</label><input id="dLimit" type="number" min="0" step=".01" value="0"></div>
+      <div class="field"><label>Pago mínimo / cuota CRC</label><input id="dMinimum" type="number" min="0" step="1" value="0"></div>
+      <div class="field"><label>Día de pago</label><input id="dPayDay" placeholder="Ej. 4, 20, 30"></div>
+      <div class="field"><label>Tasa</label><input id="dRate"></div>
+      <div class="field"><label>Prioridad</label><input id="dPriority" type="number" min="1" step="1" value="1"></div>
+      <div class="field wide"><label>Meta</label><input id="dGoal"></div>
+      <div class="field wide"><label>Notas</label><textarea id="dNotes"></textarea></div>
+      <div class="dialog-actions wide">
+        <button type="button" class="btn secondary" id="cancelDebtBtn">Cancelar</button>
+        <button type="submit" class="btn">Guardar</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="reconcileDialog">
+  <div class="dialog-body">
+    <h2>Actualizar saldo real</h2>
+    <p class="muted">Usa el saldo que realmente ves en tus cuentas disponibles. Este ajuste no crea un ingreso ni un gasto: simplemente corrige el punto de partida del flujo.</p>
+    <form id="reconcileForm" class="form-grid">
+      <div class="field"><label>Fecha de conciliación</label><input type="date" id="rDate" required></div>
+      <div class="field"><label>Saldo calculado antes del ajuste</label><input id="rCalculated" readonly></div>
+      <div class="field"><label>Saldo real</label><input id="rAmount" type="number" min="0" step="1" required></div>
+      <div class="field"><label>Diferencia</label><input id="rDifference" readonly></div>
+      <div class="field wide"><label>Nota</label><input id="rNote" placeholder="Ej. concilié contra mi cuenta bancaria"></div>
+      <div class="dialog-actions wide">
+        <button type="button" class="btn secondary" id="cancelReconcileBtn">Cancelar</button>
+        <button type="submit" class="btn">Usar este saldo</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const STORAGE_KEY = "gloriana_finanzas_local_v1";
+
+const CATEGORIES = ["Ingreso principal","Otros ingresos","Tarjetas / acuerdos","Supermercado","Transporte","Salud","Gimnasio","Cuidado personal","Teléfonos","Ocio","Ahorro / inversión","Otros"];
+const EXPENSE_CATEGORIES = CATEGORIES.filter(x=>!["Ingreso principal","Otros ingresos"].includes(x));
+const MOVEMENT_TYPES = ["Ingreso","Gasto","Pago deuda"];
+const ACCOUNTS = ["Cuenta bancaria","Efectivo","Otra cuenta"];
+
+const initialData = {
+  settings:{fx:500},
+  quarters:["2026-T3","2026-T4","2027-T1"],
+  periods:[
+    ...makeQuarter("2026-T3"),
+    ...makeQuarter("2026-T4"),
+    ...makeQuarter("2027-T1")
+  ],
+  movements:[],
+  reconciliations:[],
+  movementSeq:0,
+  debts:[],
+  receivables:[],
+  reserves:[],
+  reserveMovements:[]
+};
+
+function makeQuarter(q){
+  const match=/^(\d{4})-T([1-4])$/.exec(q);
+  if(!match)return [];
+  const year=Number(match[1]), quarter=Number(match[2]), startMonth=(quarter-1)*3+1;
+  const rows=[];let n=1;
+  for(let offset=0;offset<3;offset++){
+    const month=startMonth+offset;
+    const budgetMonth=`${year}-${String(month).padStart(2,"0")}`;
+    const q1Date=new Date(Date.UTC(year,month-1,1)).toISOString().slice(0,10);
+    const q2Date=new Date(Date.UTC(year,month-1,15)).toISOString().slice(0,10);
+    rows.push({key:`${budgetMonth}-Q1`,quarter:q,n:n++,budgetMonth,fortnight:1,date:q1Date,opening:null,income:0,otherIncome:0,budgets:{}});
+    rows.push({key:`${budgetMonth}-Q2`,quarter:q,n:n++,budgetMonth,fortnight:2,date:q2Date,opening:null,income:0,otherIncome:0,budgets:{}});
+  }
+  return rows;
+}
+function id(){return globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)+Date.now()}
+function clone(x){return JSON.parse(JSON.stringify(x))}
+let data = load();
+
+function deriveBudgetMeta(p){
+  if(p.budgetMonth&&p.fortnight)return {budgetMonth:p.budgetMonth,fortnight:Number(p.fortnight)};
+  const d=new Date((p.date||"")+"T00:00:00Z");
+  if(Number.isNaN(d.getTime()))return {budgetMonth:"",fortnight:1};
+  const day=d.getUTCDate();
+  return {budgetMonth:d.toISOString().slice(0,7),fortnight:day<15?1:2};
+}
+function budgetQuarterFromMonth(month){
+  if(!month)return "";
+  const [year,m]=month.split("-").map(Number);
+  return `${year}-T${Math.floor((m-1)/3)+1}`;
+}
+function canonicalPaymentDate(budgetMonth,fortnight){
+  const [year,month]=budgetMonth.split("-").map(Number);
+  const day=Number(fortnight)===1?1:15;
+  return new Date(Date.UTC(year,month-1,day)).toISOString().slice(0,10);
+}
+function migrateData(raw){
+  raw=raw&&typeof raw==="object"?raw:clone(initialData);
+  raw.settings=raw.settings||{fx:460};
+  raw.periods=Array.isArray(raw.periods)?raw.periods:[];
+  raw.movements=Array.isArray(raw.movements)?raw.movements:[];
+  raw.reconciliations=Array.isArray(raw.reconciliations)?raw.reconciliations:[];
+  const categoryMap={"Comida":"Supermercado","Vivienda":"Otros","Préstamos":"Otros","Servicios":"Otros"};
+  raw.movements.forEach(m=>{if(categoryMap[m.category])m.category=categoryMap[m.category]});
+  (raw.periods||[]).forEach(p=>{
+    p.budgets=p.budgets||{};
+    if(p.budgets["Comida"]!==undefined){
+      p.budgets["Supermercado"]=num(p.budgets["Supermercado"])+num(p.budgets["Comida"]);
+      delete p.budgets["Comida"];
+    }
+    ["Vivienda","Préstamos","Servicios"].forEach(cat=>{
+      if(p.budgets[cat]!==undefined){
+        p.budgets["Otros"]=num(p.budgets["Otros"])+num(p.budgets[cat]);
+        delete p.budgets[cat];
+      }
+    });
+  });
+  raw.debts=Array.isArray(raw.debts)?raw.debts:[];
+  raw.receivables=Array.isArray(raw.receivables)?raw.receivables:[];
+  raw.reserves=Array.isArray(raw.reserves)?raw.reserves:[];
+  raw.reserveMovements=Array.isArray(raw.reserveMovements)?raw.reserveMovements:[];
+  raw.receivables.forEach(r=>{r.id=r.id||id();r.person=r.person||"";r.reason=r.reason||"";r.date=r.date||todayIso();r.amount=num(r.amount);r.status=r.status==="paid"?"paid":"pending";r.paidAt=r.status==="paid"?(r.paidAt||r.date):""});
+  raw.reserves.forEach(r=>{r.id=r.id||id();r.name=r.name||"Fondo";r.type=r.type==="protected"?"protected":"goal";r.target=num(r.target);r.openingAmount=num(r.openingAmount);r.openingDate=r.openingDate||todayIso();r.location=r.location||"";r.rate=num(r.rate);r.notes=r.notes||""});
+  raw.reserveMovements.forEach((t,index)=>{t.id=t.id||id();t.date=t.date||todayIso();t.reserveId=t.reserveId||"";t.type=t.type||"Aporte";t.amount=num(t.amount);t.description=t.description||"";t.createdAt=t.createdAt||`${t.date}T20:00:${String(index).padStart(2,"0")}`});
+  raw.periods.forEach((p,index)=>{
+    const meta=deriveBudgetMeta(p);
+    p.budgetMonth=meta.budgetMonth;p.fortnight=meta.fortnight;
+    p.key=p.key||`${p.quarter||budgetQuarterFromMonth(meta.budgetMonth)}-${p.n||index+1}`;
+    p.quarter=budgetQuarterFromMonth(p.budgetMonth);
+    p.date=canonicalPaymentDate(p.budgetMonth,p.fortnight);
+    p.budgets=p.budgets||{};p.income=num(p.income);p.otherIncome=num(p.otherIncome);
+  });
+  const remap=new Map(), merged=[], byAccountingPeriod=new Map();
+  [...raw.periods].sort((a,b)=>a.date.localeCompare(b.date)).forEach(p=>{
+    const accountingKey=`${p.budgetMonth}|${p.fortnight}`;
+    const existing=byAccountingPeriod.get(accountingKey);
+    if(!existing){
+      byAccountingPeriod.set(accountingKey,p);merged.push(p);return;
+    }
+    remap.set(periodKey(p),periodKey(existing));
+    existing.income+=num(p.income);existing.otherIncome+=num(p.otherIncome);
+    if((existing.opening===null||existing.opening===undefined)&&p.opening!==null&&p.opening!==undefined)existing.opening=num(p.opening);
+    for(const [category,amount] of Object.entries(p.budgets||{}))existing.budgets[category]=num(existing.budgets[category])+num(amount);
+  });
+  raw.periods=merged.sort((a,b)=>a.date.localeCompare(b.date));
+  const debtByName=new Map(raw.debts.map(d=>[d.name,d]));
+  let maxSeq=num(raw.movementSeq);
+  raw.movements.forEach((m,index)=>{
+    if(!Number.isFinite(Number(m.seq))||Number(m.seq)<=0)m.seq=++maxSeq;
+    else maxSeq=Math.max(maxSeq,Number(m.seq));
+    m.createdAt=m.createdAt||`${m.date||"2000-01-01"}T12:00:00`;
+  });
+  raw.movementSeq=maxSeq;
+  raw.reconciliations.forEach((r,index)=>{
+    r.id=r.id||id();
+    r.date=r.date||new Date().toISOString().slice(0,10);
+    r.amount=num(r.amount);
+    r.afterSeq=Number.isFinite(Number(r.afterSeq))?Number(r.afterSeq):maxSeq;
+    r.calculatedBefore=Number.isFinite(Number(r.calculatedBefore))?Number(r.calculatedBefore):null;
+    r.note=r.note||"";
+    r.createdAt=r.createdAt||`${r.date}T23:59:${String(index).padStart(2,"0")}`;
+  });
+  raw.movements.forEach(m=>{
+    if(remap.has(m.period))m.period=remap.get(m.period);
+    if(!m.debtId&&m.debt&&debtByName.has(m.debt))m.debtId=debtByName.get(m.debt).id;
+    if(!m.period&&m.date){
+      const p=periodForDateIn(raw.periods,m.date);
+      if(p){m.period=periodKey(p);m.quarter=budgetQuarter(p)}
+    }
+    const linked=raw.periods.find(p=>periodKey(p)===m.period);
+    if(linked)m.quarter=budgetQuarter(linked);
+  });
+  raw.quarters=planningQuartersFrom(raw.periods);
+  raw.version=1.3;
+  return raw;
+}
+function load(){
+  try{
+    const saved=localStorage.getItem(STORAGE_KEY);
+    return migrateData(saved?JSON.parse(saved):clone(initialData));
+  }catch(e){console.error(e);return migrateData(clone(initialData))}
+}
+function save(){data.version=1.3;localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
+function money(v){return new Intl.NumberFormat("es-CR",{style:"currency",currency:"CRC",maximumFractionDigits:0}).format(Number(v)||0)}
+function num(v){return Number(v)||0}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]||ch))}
+function dateLabel(s){if(!s)return"";return new Intl.DateTimeFormat("es-CR",{day:"2-digit",month:"short",year:"numeric",timeZone:"UTC"}).format(new Date(s+"T00:00:00Z"))}
+function csvEscape(v){const s=String(v??"");return /[",\n]/.test(s)?`"${s.replaceAll('"','""')}"`:s}
+function download(name,text,type="text/plain"){
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)
+}
+function periodKey(p){return p.key||`${p.quarter}-${p.n}`}
+function periodForDateIn(periods,date){
+  const candidates=[...periods].sort((a,b)=>a.date.localeCompare(b.date));let chosen=null;
+  for(const p of candidates){if(p.date<=date)chosen=p;else break}
+  return chosen;
+}
+function periodForDate(date){return periodForDateIn(data.periods,date)}
+function periodByKey(key){return data.periods.find(p=>periodKey(p)===key)}
+function budgetQuarter(p){return budgetQuarterFromMonth(p.budgetMonth||deriveBudgetMeta(p).budgetMonth)}
+function planningQuartersFrom(periods){return [...new Set(periods.map(p=>budgetQuarterFromMonth(p.budgetMonth||deriveBudgetMeta(p).budgetMonth)).filter(Boolean))].sort()}
+function planningQuarters(){return planningQuartersFrom(data.periods)}
+function allProjectedRows(){
+  const periods=[...data.periods].sort((a,b)=>a.date.localeCompare(b.date)||Number(a.fortnight)-Number(b.fortnight));
+  let prior=null;
+  return periods.map(p=>{
+    const opening=p.opening!==null&&p.opening!==undefined?num(p.opening):(prior??0);
+    const expenses=EXPENSE_CATEGORIES.reduce((s,c)=>s+num(p.budgets?.[c]),0);
+    const available=opening+num(p.income)+num(p.otherIncome);
+    const ending=available-expenses;prior=ending;
+    return {...p,planningQuarter:budgetQuarter(p),openingCalc:opening,expenses,available,ending,projectionSource:"Plan original"};
+  });
+}
+function getStaticQuarterPeriods(q){return allProjectedRows().filter(p=>p.planningQuarter===q)}
+function todayIso(){return new Date().toISOString().slice(0,10)}
+function addDaysIso(date,days){
+  const d=new Date(date+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)
+}
+function periodEndDate(p){
+  if(Number(p.fortnight)===1)return `${p.budgetMonth}-14`;
+  const [year,month]=p.budgetMonth.split("-").map(Number);
+  return new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
+}
+function signedMovement(m){return m.type==="Ingreso"?num(m.amount):-num(m.amount)}
+function reserveTxnDelta(t){
+  if(t.type==="Aporte"||t.type==="Rendimiento"||t.type==="Ajuste")return num(t.amount);
+  if(t.type==="Retiro a operación"||t.type==="Uso objetivo")return -num(t.amount);
+  return 0;
+}
+function reserveOperatingDelta(t){
+  if(t.type==="Aporte")return -num(t.amount);
+  if(t.type==="Retiro a operación")return num(t.amount);
+  return 0;
+}
+function reserveBalanceAt(r,asOfDate=todayIso()){
+  let balance=(r.openingDate||"")<=asOfDate?num(r.openingAmount):0;
+  balance+=(data.reserveMovements||[]).filter(t=>t.reserveId===r.id&&t.date<=asOfDate).reduce((sum,t)=>sum+reserveTxnDelta(t),0);
+  return Math.max(0,balance);
+}
+function reserveTotals(asOfDate=todayIso()){
+  const protectedTotal=(data.reserves||[]).filter(r=>r.type==="protected").reduce((s,r)=>s+reserveBalanceAt(r,asOfDate),0);
+  const goalTotal=(data.reserves||[]).filter(r=>r.type==="goal").reduce((s,r)=>s+reserveBalanceAt(r,asOfDate),0);
+  return {protectedTotal,goalTotal,total:protectedTotal+goalTotal};
+}
+function reserveEventAfterReconciliation(t,rec){
+  return t.date>rec.date || (t.date===rec.date && String(t.createdAt||"")>String(rec.createdAt||""));
+}
+function latestReconciliation(asOfDate=todayIso()){
+  return [...(data.reconciliations||[])]
+    .filter(r=>r.date<=asOfDate)
+    .sort((a,b)=>a.date.localeCompare(b.date)||String(a.createdAt).localeCompare(String(b.createdAt)))
+    .at(-1)||null;
+}
+function reconciliationForPeriod(p){
+  return [...(data.reconciliations||[])]
+    .filter(r=>periodKey(periodForDate(r.date)||{})===periodKey(p))
+    .sort((a,b)=>a.date.localeCompare(b.date)||String(a.createdAt).localeCompare(String(b.createdAt)))
+    .at(-1)||null;
+}
+function actualBalanceAt(asOfDate){
+  const baseRows=allProjectedRows();
+  if(!baseRows.length)return 0;
+  const rec=latestReconciliation(asOfDate);
+  if(rec){
+    const delta=data.movements
+      .filter(m=>m.date<=asOfDate && (m.date>rec.date || (m.date===rec.date && num(m.seq)>num(rec.afterSeq))))
+      .reduce((s,m)=>s+signedMovement(m),0);
+    const reserveDelta=(data.reserveMovements||[])
+      .filter(t=>t.date<=asOfDate&&reserveEventAfterReconciliation(t,rec))
+      .reduce((s,t)=>s+reserveOperatingDelta(t),0);
+    return num(rec.amount)+delta+reserveDelta;
+  }
+  const firstDate=baseRows[0].date;
+  const base=num(baseRows[0].openingCalc);
+  const movementDelta=data.movements
+    .filter(m=>m.date>=firstDate&&m.date<=asOfDate)
+    .reduce((s,m)=>s+signedMovement(m),0);
+  const reserveDelta=(data.reserveMovements||[])
+    .filter(t=>t.date>=firstDate&&t.date<=asOfDate)
+    .reduce((s,t)=>s+reserveOperatingDelta(t),0);
+  return base+movementDelta+reserveDelta;
+}
+function periodMovements(p,throughDate=null){
+  return data.movements.filter(m=>m.period===periodKey(p)&&(!throughDate||m.date<=throughDate));
+}
+function periodHasRealSignal(p){
+  return periodMovements(p).length>0 || !!reconciliationForPeriod(p);
+}
+function remainingBudgetForCurrentPeriod(p,throughDate){
+  const ms=periodMovements(p,throughDate).filter(m=>m.type!=="Ingreso");
+  return EXPENSE_CATEGORIES.reduce((sum,category)=>{
+    const spent=ms.filter(m=>m.category===category).reduce((s,m)=>s+num(m.amount),0);
+    return sum+Math.max(0,num(p.budgets?.[category])-spent);
+  },0);
+}
+function allAdaptiveProjectedRows(){
+  const base=allProjectedRows(), today=todayIso();let prior=null;
+  return base.map((p,index)=>{
+    const end=periodEndDate(p);
+    let opening=index===0?num(p.openingCalc):(prior??num(p.openingCalc));
+    let available=opening+num(p.income)+num(p.otherIncome);
+    let ending=available-num(p.expenses);
+    let source=index===0?"Plan inicial":"Arrastre del plan";
+    const isPast=end<today, isCurrent=p.date<=today&&today<=end;
+    const periodRec=reconciliationForPeriod(p);
+
+    if(isPast && periodHasRealSignal(p)){
+      ending=actualBalanceAt(end);
+      available=opening+num(p.income)+num(p.otherIncome);
+      source=periodRec?"Cierre conciliado":"Resultado real registrado";
+    }else if(isCurrent){
+      const rec=latestReconciliation(today);
+      const recInCurrent=rec && rec.date>=p.date && rec.date<=end;
+      if(recInCurrent){
+        opening=actualBalanceAt(today);
+        available=opening;
+        ending=opening-remainingBudgetForCurrentPeriod(p,today);
+        source="Saldo real conciliado";
+      }else if(index>0 && prior!==null){
+        opening=prior;
+        available=opening+num(p.income)+num(p.otherIncome);
+        ending=available-num(p.expenses);
+        source=base[index-1]&&periodHasRealSignal(base[index-1])?"Arrastre del resultado anterior":"Arrastre actualizado";
+      }
+    }else if(index>0){
+      opening=prior;
+      available=opening+num(p.income)+num(p.otherIncome);
+      ending=available-num(p.expenses);
+      source="Arrastre actualizado";
+    }
+    prior=ending;
+    return {...p,openingCalc:opening,available,ending,projectionSource:source};
+  });
+}
+function getQuarterPeriods(q){return allAdaptiveProjectedRows().filter(p=>p.planningQuarter===q)}
+function getOpeningAndBalances(q){return getQuarterPeriods(q)}
+function movementPeriod(m){return periodByKey(m.period)||periodForDate(m.date)}
+function movementBudgetMonth(m){return movementPeriod(m)?.budgetMonth||deriveBudgetMeta({date:m.date}).budgetMonth}
+function movementBudgetQuarter(m){return budgetQuarterFromMonth(movementBudgetMonth(m))}
+function movementDebtName(m){
+  return data.debts.find(d=>d.id===m.debtId)?.name||m.debt||"";
+}
+function allActualRows(){
+  const rows=allAdaptiveProjectedRows(), today=todayIso();
+  return rows.map(p=>{
+    const ms=periodMovements(p);
+    const actualIncome=ms.filter(m=>m.type==="Ingreso").reduce((s,m)=>s+num(m.amount),0);
+    const actualExpenses=ms.filter(m=>m.type!=="Ingreso").reduce((s,m)=>s+num(m.amount),0);
+    const end=periodEndDate(p);
+    const actualBalance=p.date<=today?actualBalanceAt(end<today?end:today):null;
+    return {...p,actualIncome,actualExpenses,actualBalance};
+  });
+}
+function actualPeriodRows(q){return allActualRows().filter(r=>r.planningQuarter===q)}
+function monthKey(date){return String(date||"").slice(0,7)}
+function monthLabel(key){
+  if(!key)return "";
+  const [year,month]=key.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-CR",{month:"long",year:"numeric",timeZone:"UTC"}).format(new Date(Date.UTC(year,month-1,1)));
+}
+function fortnightLabel(p){return `${p.fortnight===1?"1.ª":"2.ª"} quincena de ${monthLabel(p.budgetMonth)}`}
+function filterOptions(level){
+  if(level==="fortnight"){
+    return allProjectedRows().map(p=>({
+      value:periodKey(p),
+      label:`${fortnightLabel(p)} · ingreso ${dateLabel(p.date)}`
+    }));
+  }
+  if(level==="month"){
+    const months=[...new Set([
+      ...data.periods.map(p=>p.budgetMonth||deriveBudgetMeta(p).budgetMonth),
+      ...data.movements.map(m=>movementBudgetMonth(m))
+    ].filter(Boolean))].sort();
+    return months.map(m=>({value:m,label:monthLabel(m)}));
+  }
+  return planningQuarters().map(q=>({value:q,label:q}));
+}
+function selectedRows(level,value){
+  const rows=allActualRows();
+  if(level==="fortnight")return rows.filter(r=>periodKey(r)===value);
+  if(level==="month")return rows.filter(r=>r.budgetMonth===value);
+  return rows.filter(r=>r.planningQuarter===value);
+}
+function selectedMovements(level,value){
+  if(level==="fortnight")return data.movements.filter(m=>m.period===value);
+  if(level==="month")return data.movements.filter(m=>movementBudgetMonth(m)===value);
+  return data.movements.filter(m=>movementBudgetQuarter(m)===value);
+}
+function selectedLabel(level,value){
+  return filterOptions(level).find(x=>x.value===value)?.label||value||"";
+}
+function categoryReportFiltered(level,value){
+  const rows=selectedRows(level,value), movements=selectedMovements(level,value);
+  return EXPENSE_CATEGORIES.map(category=>{
+    const budget=rows.reduce((s,p)=>s+num(p.budgets[category]),0);
+    const actual=movements.filter(m=>m.type!=="Ingreso"&&m.category===category).reduce((s,m)=>s+num(m.amount),0);
+    return {category,budget,actual,variance:budget-actual,used:budget?actual/budget:0}
+  });
+}
+function selectedSummary(level,value){
+  const rows=selectedRows(level,value), movements=selectedMovements(level,value);
+  const opening=rows[0]?.openingCalc||0;
+  const plannedIncome=rows.reduce((s,r)=>s+num(r.income)+num(r.otherIncome),0);
+  const realIncome=movements.filter(m=>m.type==="Ingreso").reduce((s,m)=>s+num(m.amount),0);
+  const plannedExpense=rows.reduce((s,r)=>s+num(r.expenses),0);
+  const realExpense=movements.filter(m=>m.type!=="Ingreso").reduce((s,m)=>s+num(m.amount),0);
+  const projected=rows.length?(rows.at(-1)?.ending??(opening+plannedIncome-plannedExpense)):opening;
+  const actualRows=rows.filter(r=>r.actualBalance!==null&&r.actualBalance!==undefined);
+  const actual=actualRows.length?actualRows.at(-1).actualBalance:(opening+realIncome-realExpense);
+  return {rows,movements,opening,plannedIncome,realIncome,plannedExpense,realExpense,projected,actual};
+}
+function debtPayments(d){
+  return data.movements.filter(m=>m.type==="Pago deuda"&&(m.debtId?m.debtId===d.id:m.debt===d.name)).reduce((s,m)=>s+num(m.amount),0);
+}
+function debtEquivalent(d){return num(d.usd)*num(d.fx)+num(d.crc)}
+function debtOutstanding(d){return Math.max(0,debtEquivalent(d)-debtPayments(d))}
+function debtUtil(d){return num(d.limit)?(num(d.usd)+num(d.crc)/num(d.fx))/num(d.limit):0}
+
+function fillSelect(el,values,current){
+  el.innerHTML=values.map(v=>`<option value="${v}" ${v===current?"selected":""}>${v}</option>`).join("")
+}
+function fillObjectSelect(el,values,current){
+  el.innerHTML=values.map(v=>`<option value="${v.value}" ${v.value===current?"selected":""}>${v.label}</option>`).join("")
+}
+function syncPeriodFilter(prefix,preferred){
+  const levelEl=document.getElementById(prefix+"Level"), periodEl=document.getElementById(prefix+"Period");
+  if(!levelEl||!periodEl)return;
+  const level=levelEl.value||"quarter", options=filterOptions(level), current=preferred||periodEl.value;
+  let chosen=options.some(o=>o.value===current)?current:null;
+  if(!chosen){
+    chosen=level==="quarter"
+      ? (options.find(o=>o.value===data.quarters[0])?.value||options[0]?.value)
+      : options.at(-1)?.value;
+  }
+  fillObjectSelect(periodEl,options,chosen);
+}
+function syncQuarterSelectors(){
+  const quarters=planningQuarters(), planEl=document.getElementById("planQuarter");
+  data.quarters=quarters;
+  if(planEl){
+    const cur=planEl.value||quarters[0];
+    fillSelect(planEl,quarters,quarters.includes(cur)?cur:quarters[0]);
+  }
+  ["dashboard","movement","report"].forEach(prefix=>syncPeriodFilter(prefix));
+}
+function navigate(view){
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===`view-${view}`));
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+  if(view==="dashboard")renderDashboard();
+  if(view==="plan")renderPlan();
+  if(view==="movements")renderMovements();
+  if(view==="debts")renderDebts();
+  if(view==="receivables")renderReceivables();
+  if(view==="capital")renderCapital();
+  if(view==="reports")renderReports();
+}
+
+function renderDashboard(){
+  const level=document.getElementById("dashboardLevel").value;
+  const value=document.getElementById("dashboardPeriod").value;
+  const summary=selectedSummary(level,value), cat=categoryReportFiltered(level,value), rows=summary.rows;
+  const debtTotal=data.debts.reduce((s,d)=>s+debtOutstanding(d),0);
+  const reserveSummary=reserveTotals(todayIso());
+  const cards=[
+    ["Saldo inicial",summary.opening,""],
+    ["Ingresos presupuestados",summary.plannedIncome,""],
+    ["Ingresos reales",summary.realIncome,summary.realIncome>=summary.plannedIncome?"good":"warn"],
+    ["Egresos presupuestados",summary.plannedExpense,""],
+    ["Egresos reales",summary.realExpense,summary.realExpense<=summary.plannedExpense?"good":"bad"],
+    ["Saldo proyectado",summary.projected,summary.projected>=0?"good":"bad"],
+    ["Saldo real",summary.actual,summary.actual>=0?"good":"bad"],
+    ["Capital protegido",reserveSummary.protectedTotal,""],
+    ["Fondos por objetivo",reserveSummary.goalTotal,""],
+    ["Deuda estimada",debtTotal,"warn"]
+  ];
+  document.getElementById("kpiGrid").innerHTML=cards.map(([l,v,c])=>`<div class="card kpi ${c}"><div class="label">${l}</div><div class="value">${money(v)}</div></div>`).join("");
+  document.getElementById("dashboardCategories").innerHTML=categoryTable(cat);
+  renderReconciliationStatus();
+  const labels=rows.map(r=>level==="quarter"?`${monthLabel(r.budgetMonth).slice(0,3)} ${r.fortnight}Q`:level==="month"?`${r.fortnight}.ª`:dateLabel(r.date).replace(/ de /g," "));
+  drawBarChart(document.getElementById("expenseChart"),labels.length?labels:["Sin datos"],labels.length?rows.map(r=>r.expenses):[0],labels.length?rows.map(r=>r.actualExpenses):[0]);
+  drawLineChart(document.getElementById("cashChart"),labels.length?labels:["Sin datos"],labels.length?rows.map(r=>r.ending):[0],labels.length?rows.map(r=>r.actualBalance):[0]);
+}
+
+function renderReconciliationStatus(){
+  const box=document.getElementById("reconcileStatus");if(!box)return;
+  const today=todayIso(), latest=latestReconciliation(today), current=actualBalanceAt(today);
+  if(!latest){
+    box.innerHTML=`<div class="reconcile-row"><div><strong>Conciliación de saldo</strong><div class="muted">Todavía no has fijado un saldo real. Cuando el registro se desordene, usa “Actualizar saldo real” y el flujo futuro se recalculará desde ese punto.</div></div><span class="pill">Saldo calculado hoy: ${money(current)}</span></div>`;
+    return;
+  }
+  const diff=latest.calculatedBefore===null?null:num(latest.amount)-num(latest.calculatedBefore);
+  const recent=[...(data.reconciliations||[])].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,3);
+  box.innerHTML=`<div class="reconcile-row">
+    <div><strong>Último saldo conciliado: ${money(latest.amount)}</strong><div class="muted">${dateLabel(latest.date)}${latest.note?` · ${latest.note}`:""} · saldo actual después de movimientos posteriores: ${money(current)}</div></div>
+    ${diff===null?"":`<div class="delta ${diff>=0?"positive":"negative"}">Ajuste ${diff>=0?"+":""}${money(diff)}</div>`}
+  </div>
+  <div class="table-wrap" style="margin-top:10px"><table style="min-width:650px"><thead><tr><th>Fecha</th><th>Saldo real</th><th>Ajuste</th><th>Nota</th><th></th></tr></thead><tbody>
+  ${recent.map(r=>`<tr><td>${dateLabel(r.date)}</td><td class="num">${money(r.amount)}</td><td class="num">${r.calculatedBefore===null?"—":money(num(r.amount)-num(r.calculatedBefore))}</td><td>${r.note||""}</td><td><button class="btn danger small" data-delete-reconcile="${r.id}">Eliminar</button></td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+function openReconcile(){
+  const dialog=document.getElementById("reconcileDialog"), date=todayIso();
+  document.getElementById("rDate").value=date;
+  document.getElementById("rAmount").value="";
+  document.getElementById("rNote").value="";
+  updateReconcilePreview();
+  dialog.showModal();
+  setTimeout(()=>document.getElementById("rAmount").focus(),50);
+}
+function updateReconcilePreview(){
+  const date=document.getElementById("rDate").value||todayIso();
+  const calculated=actualBalanceAt(date), entered=document.getElementById("rAmount").value;
+  document.getElementById("rCalculated").value=money(calculated);
+  document.getElementById("rDifference").value=entered===""?"":money(num(entered)-calculated);
+}
+function categoryTable(rows){
+  return `<table><thead><tr><th>Categoría</th><th>Presupuesto</th><th>Real</th><th>Disponible</th><th>Uso</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td>${r.category}</td><td class="num">${money(r.budget)}</td><td class="num">${money(r.actual)}</td><td class="num ${r.variance<0?"negative":"positive"}">${money(r.variance)}</td><td><div class="progress"><span style="width:${Math.min(100,r.used*100)}%"></span></div><small>${(r.used*100).toFixed(0)}%</small></td></tr>`).join("")
+  }</tbody></table>`
+}
+
+function setPlanMonthOpen(section,open){
+  if(!section)return;
+  const body=section.querySelector(".plan-month-body"),btn=section.querySelector(".plan-month-toggle");
+  if(body)body.hidden=!open;
+  section.classList.toggle("is-collapsed",!open);
+  if(btn){btn.setAttribute("aria-expanded",String(open));btn.textContent=open?"Ocultar detalle":"Ver quincenas"}
+}
+function setAllPlanMonths(open){document.querySelectorAll("#planMonths .plan-month").forEach(section=>setPlanMonthOpen(section,open))}
+
+function renderPlan(){
+  const q=document.getElementById("planQuarter").value||planningQuarters()[0], rows=getOpeningAndBalances(q);
+  const staticRows=getStaticQuarterPeriods(q);
+  const cats=["Tarjetas / acuerdos","Supermercado","Transporte","Salud","Gimnasio","Cuidado personal","Teléfonos","Ocio","Ahorro / inversión","Otros"];
+  const months=[...new Set(rows.map(r=>r.budgetMonth))];
+  const quarterIncome=rows.reduce((sum,r)=>sum+num(r.income)+num(r.otherIncome),0);
+  const quarterExpenses=rows.reduce((sum,r)=>sum+num(r.expenses),0);
+  const quarterFlow=quarterIncome-quarterExpenses;
+  const firstOpening=rows[0]?.openingCalc||0;
+  const last=rows.at(-1)?.ending||0, original=staticRows.at(-1)?.ending||0, delta=last-original;
+
+  const summaryItems=[
+    ["Saldo inicial",money(firstOpening),""],
+    ["Ingresos trimestre",money(quarterIncome),""],
+    ["Egresos trimestre",money(quarterExpenses),""],
+    ["Flujo del trimestre",`${quarterFlow>=0?"+":""}${money(quarterFlow)}`,quarterFlow>=0?"positive":"negative"]
+  ];
+  document.getElementById("planQuarterSummary").innerHTML=summaryItems.map(([label,value,cls])=>`<div class="summary-box"><div class="summary-label">${label}</div><div class="summary-value ${cls}">${value}</div></div>`).join("");
+
+  const monthHtml=months.map((month,monthIndex)=>{
+    const monthRows=rows.filter(r=>r.budgetMonth===month).sort((a,b)=>num(a.fortnight)-num(b.fortnight));
+    const monthIncome=monthRows.reduce((sum,r)=>sum+num(r.income)+num(r.otherIncome),0);
+    const monthExpenses=monthRows.reduce((sum,r)=>sum+num(r.expenses),0);
+    const monthFlow=monthIncome-monthExpenses;
+    const monthOpening=monthRows[0]?.openingCalc||0;
+    const monthEnding=monthRows.at(-1)?.ending||monthOpening;
+
+    const fortnightHtml=monthRows.map((r,rowIndex)=>{
+      const key=periodKey(r), totalIncome=num(r.income)+num(r.otherIncome);
+      const openingEditable=(monthIndex===0&&rowIndex===0)
+        ? `<input class="editable" type="number" data-plan="${key}|opening" value="${r.openingCalc}">`
+        : `<div class="meta-value">${money(r.openingCalc)}</div>`;
+      return `<div class="fortnight-card">
+        <div class="fortnight-head">
+          <div><strong>${r.fortnight===1?"1.ª quincena":"2.ª quincena"}</strong><small>${r.fortnight===1?"Desde el día 1":"Desde el día 15"}</small></div>
+          <span class="pill">${dateLabel(r.date)}</span>
+        </div>
+        <div class="fortnight-meta">
+          <div class="meta-item"><label>Fecha de inicio</label><input class="editable" type="date" data-plan="${key}|date" value="${r.date}"></div>
+          <div class="meta-item"><label>Saldo base actualizado</label>${openingEditable}</div>
+          <div class="meta-item"><label>Ingreso principal</label><input class="editable" type="number" data-plan="${key}|income" value="${r.income}"></div>
+          <div class="meta-item"><label>Otros ingresos</label><input class="editable" type="number" data-plan="${key}|otherIncome" value="${r.otherIncome}"></div>
+          <div class="meta-item"><label>Ingresos quincena</label><div class="meta-value">${money(totalIncome)}</div></div>
+          <div class="meta-item"><label>Disponible</label><div class="meta-value">${money(r.available)}</div></div>
+          <div class="meta-item"><label>Base usada</label><div class="meta-value"><span class="pill">${r.projectionSource}</span></div></div>
+        </div>
+        <table class="fortnight-table">
+          <thead><tr><th>Categoría</th><th>Presupuesto</th></tr></thead>
+          <tbody>${cats.map(c=>`<tr><td>${c}</td><td><input class="editable" type="number" data-budget="${key}|${c}" value="${num(r.budgets[c])}"></td></tr>`).join("")}</tbody>
+        </table>
+        <div class="fortnight-total"><strong>Total egresos</strong><strong>${money(r.expenses)}</strong></div>
+        <div class="fortnight-total"><strong>Saldo final actualizado</strong><strong class="${r.ending<0?"negative":"positive"}">${money(r.ending)}</strong></div>
+      </div>`;
+    }).join("");
+
+    return `<section class="plan-month" data-plan-month="${month}">
+      <div class="plan-month-header">
+        <div>
+          <div class="plan-month-title"><h2>${monthLabel(month)}</h2>${monthIndex===0?`<span class="pill">Inicio del trimestre</span>`:""}</div>
+          <div class="plan-month-sub">Ingresos ${money(monthIncome)} · Egresos ${money(monthExpenses)} · Flujo <span class="${monthFlow>=0?"positive":"negative"}">${monthFlow>=0?"+":""}${money(monthFlow)}</span></div>
+        </div>
+        <div class="plan-month-actions">
+          <div class="plan-month-compact-balance" aria-label="Saldo proyectado al cierre del mes"><span>Saldo proyectado</span><strong class="${monthEnding<0?"negative":"positive"}">${money(monthEnding)}</strong></div>
+          <button type="button" class="btn secondary small plan-month-toggle" data-toggle-plan-month="${month}" aria-expanded="true">Ocultar detalle</button>
+        </div>
+      </div>
+      <div class="plan-month-body">
+        <div class="month-kpis">
+          <div class="month-kpi"><div class="summary-label">Saldo inicial</div><div class="summary-value">${money(monthOpening)}</div></div>
+          <div class="month-kpi"><div class="summary-label">Ingresos</div><div class="summary-value">${money(monthIncome)}</div></div>
+          <div class="month-kpi"><div class="summary-label">Egresos</div><div class="summary-value">${money(monthExpenses)}</div></div>
+          <div class="month-kpi"><div class="summary-label">Saldo final</div><div class="summary-value ${monthEnding<0?"negative":"positive"}">${money(monthEnding)}</div></div>
+        </div>
+        <div class="fortnight-grid">${fortnightHtml}</div>
+      </div>
+    </section>`;
+  }).join("");
+
+  document.getElementById("planMonths").innerHTML=monthHtml||`<div class="empty">Este trimestre todavía no tiene quincenas configuradas.</div>`;
+  document.getElementById("planSummary").textContent=`Saldo final ${money(last)} · diferencia vs. plan ${delta>=0?"+":""}${money(delta)}`;
+  document.getElementById("planClosing").innerHTML=`
+    <div class="month-kpi"><div class="summary-label">Saldo inicial</div><div class="summary-value">${money(firstOpening)}</div></div>
+    <div class="month-kpi"><div class="summary-label">Ingresos</div><div class="summary-value">${money(quarterIncome)}</div></div>
+    <div class="month-kpi"><div class="summary-label">Egresos</div><div class="summary-value">${money(quarterExpenses)}</div></div>
+    <div class="month-kpi"><div class="summary-label">Saldo final proyectado</div><div class="summary-value ${last<0?"negative":"positive"}">${money(last)}</div></div>`;
+}
+function renderMovements(){
+  const level=document.getElementById("movementLevel").value;
+  const value=document.getElementById("movementPeriod").value;
+  const type=document.getElementById("movementTypeFilter").value;
+  const rows=selectedMovements(level,value).filter(m=>!type||m.type===type).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById("movementCount").textContent=`${rows.length} movimientos · ${selectedLabel(level,value)}`;
+  document.getElementById("movementTable").innerHTML=`<thead><tr><th>Fecha</th><th>Mes presupuestario</th><th>Quincena</th><th>Tipo</th><th>Categoría</th><th>Deuda</th><th>Descripción</th><th>Monto</th><th></th></tr></thead><tbody>${
+    rows.length?rows.map(m=>{const p=movementPeriod(m);return `<tr><td>${dateLabel(m.date)}</td><td>${p?monthLabel(p.budgetMonth):""}</td><td class="center">${p?(p.fortnight===1?"1.ª":"2.ª"):""}</td><td><span class="pill">${m.type}</span></td><td>${m.category}</td><td>${movementDebtName(m)}</td><td>${m.description||""}</td><td class="num">${money(m.amount)}</td><td><button class="btn danger small" data-delete-movement="${m.id}">Eliminar</button></td></tr>`}).join(""):`<tr><td colspan="9" class="empty">Aún no hay movimientos en este periodo.</td></tr>`
+  }</tbody>`;
+}
+function renderDebts(){
+  const total=data.debts.reduce((s,d)=>s+debtOutstanding(d),0);
+  document.getElementById("debtTotal").textContent=`Total restante estimado: ${money(total)}`;
+  document.getElementById("debtTable").innerHTML=`<thead><tr><th>Prioridad</th><th>Deuda</th><th>Tipo</th><th>Saldo base equiv.</th><th title="Suma de movimientos tipo Pago deuda vinculados a esta deuda">Pagado registrado</th><th>Saldo restante estimado</th><th>Utilización</th><th>Pago mínimo</th><th>Día pago</th><th>Meta</th><th>Acciones</th></tr></thead><tbody>${
+    [...data.debts].sort((a,b)=>a.priority-b.priority).map(d=>`<tr>
+      <td class="center">${d.priority}</td><td><strong>${d.name}</strong><br><small class="muted">${d.notes||""}</small></td><td>${d.type}</td>
+      <td class="num">${money(debtEquivalent(d))}</td><td class="num">${money(debtPayments(d))}</td><td class="num">${money(debtOutstanding(d))}</td>
+      <td>${d.limit?`<div class="progress"><span style="width:${Math.min(100,debtUtil(d)*100)}%"></span></div><small>${(debtUtil(d)*100).toFixed(1)}%</small>`:"—"}</td>
+      <td class="num">${money(d.minimum)}</td><td class="center">${d.payDay||""}</td><td>${d.goal||""}</td>
+      <td><div class="actions"><button class="btn small" data-pay-debt="${d.id}">Registrar pago</button><button class="btn secondary small" data-edit-debt="${d.id}">Editar</button></div></td>
+    </tr>`).join("")
+  }</tbody>`;
+}
+
+
+function resetReceivableForm(){
+  document.getElementById("receivableForm").reset();
+  document.getElementById("rcId").value="";
+  document.getElementById("rcDate").value=todayIso();
+  document.getElementById("rcStatus").value="pending";
+  document.getElementById("rcSubmitBtn").textContent="Agregar por cobrar";
+  document.getElementById("rcCancelEditBtn").hidden=true;
+}
+function editReceivable(r){
+  if(!r)return;
+  document.getElementById("rcId").value=r.id;
+  document.getElementById("rcPerson").value=r.person||"";
+  document.getElementById("rcReason").value=r.reason||"";
+  document.getElementById("rcDate").value=r.date||todayIso();
+  document.getElementById("rcAmount").value=num(r.amount);
+  document.getElementById("rcStatus").value=r.status==="paid"?"paid":"pending";
+  document.getElementById("rcSubmitBtn").textContent="Guardar cambios";
+  document.getElementById("rcCancelEditBtn").hidden=false;
+  document.getElementById("rcPerson").focus();
+}
+function renderReceivables(){
+  const rows=[...(data.receivables||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(a.person).localeCompare(String(b.person)));
+  const pending=rows.filter(r=>r.status!=="paid"), paid=rows.filter(r=>r.status==="paid");
+  const pendingAmount=pending.reduce((s,r)=>s+num(r.amount),0), paidAmount=paid.reduce((s,r)=>s+num(r.amount),0);
+  document.getElementById("receivableKpis").innerHTML=[
+    ["Pendiente por cobrar",money(pendingAmount),pendingAmount?"warn":"good"],
+    ["Personas / cargos pendientes",String(pending.length),""],
+    ["Marcado como cobrado",money(paidAmount),"good"]
+  ].map(([label,value,cls])=>`<div class="card kpi ${cls}"><div class="label">${label}</div><div class="value">${value}</div></div>`).join("");
+  document.getElementById("receivableSummary").textContent=`${pending.length} pendientes · ${money(pendingAmount)}`;
+  document.getElementById("receivableTable").innerHTML=`<thead><tr><th>Estado</th><th>Persona</th><th>Motivo</th><th>Fecha</th><th>Monto</th><th>Acciones</th></tr></thead><tbody>${
+    rows.length?rows.map(r=>`<tr class="${r.status==="paid"?"receivable-paid":""}">
+      <td><span class="receivable-status ${r.status}">${r.status==="paid"?"Pagado":"Pendiente"}</span></td>
+      <td><strong>${escapeHtml(r.person)}</strong></td><td>${escapeHtml(r.reason)}</td><td>${dateLabel(r.date)}</td><td class="num"><strong>${money(r.amount)}</strong></td>
+      <td><div class="receivable-actions">${r.status==="paid"?`<button class="btn secondary small" data-reopen-receivable="${r.id}">Reabrir</button>`:`<button class="btn small" data-paid-receivable="${r.id}">Marcar pagado</button>`}<button class="btn secondary small" data-edit-receivable="${r.id}">Editar</button><button class="btn danger small" data-delete-receivable="${r.id}">Eliminar</button></div></td>
+    </tr>`).join(""):`<tr><td colspan="6" class="empty">Todavía no hay montos por cobrar registrados.</td></tr>`
+  }</tbody>`;
+}
+
+function reserveLabel(r){return r.type==="protected"?"Capital protegido":"Meta / reserva"}
+function openReserve(r=null){
+  document.getElementById("reserveDialogTitle").textContent=r?"Editar fondo":"Agregar fondo";
+  document.getElementById("fId").value=r?.id||"";
+  document.getElementById("fName").value=r?.name||"";
+  document.getElementById("fType").value=r?.type||"goal";
+  document.getElementById("fTarget").value=num(r?.target);
+  document.getElementById("fOpeningAmount").value=num(r?.openingAmount);
+  document.getElementById("fOpeningDate").value=r?.openingDate||todayIso();
+  document.getElementById("fLocation").value=r?.location||"";
+  document.getElementById("fRate").value=num(r?.rate);
+  document.getElementById("fNotes").value=r?.notes||"";
+  document.getElementById("reserveDialog").showModal();
+}
+function refreshReserveSelect(selected=""){
+  const el=document.getElementById("rtReserve");if(!el)return;
+  fillObjectSelect(el,(data.reserves||[]).map(r=>({value:r.id,label:r.name})),selected||el.value);
+}
+function renderCapital(){
+  const today=todayIso(), totals=reserveTotals(today), operating=actualBalanceAt(today);
+  const debtTotal=data.debts.reduce((s,d)=>s+debtOutstanding(d),0);
+  const liquid=operating+totals.total, net=liquid-debtTotal;
+  const cards=[["Saldo operativo",operating,operating>=0?"good":"bad"],["Capital protegido",totals.protectedTotal,""],["Metas reservadas",totals.goalTotal,""],["Patrimonio líquido",liquid,"good"],["Deuda estimada",debtTotal,"warn"],["Posición líquida neta",net,net>=0?"good":"bad"]];
+  document.getElementById("capitalKpis").innerHTML=cards.map(([l,v,c])=>`<div class="card kpi ${c}"><div class="label">${l}</div><div class="value">${money(v)}</div></div>`).join("");
+  document.getElementById("reserveTotal").textContent=`Total reservado: ${money(totals.total)}`;
+  document.getElementById("reserveTable").innerHTML=`<thead><tr><th>Fondo</th><th>Tipo</th><th>Ubicación</th><th>Saldo</th><th>Meta</th><th>Avance</th><th>Tasa</th><th>Notas</th><th></th></tr></thead><tbody>${(data.reserves||[]).length?data.reserves.map(r=>{
+    const bal=reserveBalanceAt(r,today),target=num(r.target),progress=target?bal/target:0;
+    return `<tr><td><strong>${escapeHtml(r.name)}</strong></td><td><span class="reserve-tag ${r.type}">${reserveLabel(r)}</span></td><td>${escapeHtml(r.location||"—")}</td><td class="num">${money(bal)}</td><td class="num">${target?money(target):"—"}</td><td>${target?`<div class="progress"><span style="width:${Math.min(100,progress*100)}%"></span></div><small>${(progress*100).toFixed(0)}%</small>`:"—"}</td><td class="center">${num(r.rate)?`${num(r.rate).toFixed(2)}%`:"—"}</td><td>${escapeHtml(r.notes||"")}</td><td><button class="btn secondary small" data-edit-reserve="${r.id}">Editar</button></td></tr>`;
+  }).join(""):`<tr><td colspan="9" class="empty">No hay fondos configurados.</td></tr>`}</tbody>`;
+  const tx=[...(data.reserveMovements||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,25);
+  document.getElementById("reserveTxnTable").innerHTML=`<thead><tr><th>Fecha</th><th>Fondo</th><th>Tipo</th><th>Descripción</th><th>Monto</th><th></th></tr></thead><tbody>${tx.length?tx.map(t=>`<tr><td>${dateLabel(t.date)}</td><td>${escapeHtml((data.reserves||[]).find(r=>r.id===t.reserveId)?.name||"")}</td><td><span class="pill">${escapeHtml(t.type)}</span></td><td>${escapeHtml(t.description||"")}</td><td class="num">${money(t.amount)}</td><td><button class="btn danger small" data-delete-reserve-txn="${t.id}">Eliminar</button></td></tr>`).join(""):`<tr><td colspan="6" class="empty">Sin movimientos de fondos todavía.</td></tr>`}</tbody>`;
+  refreshReserveSelect();
+}
+
+function renderReports(){
+  const level=document.getElementById("reportLevel").value;
+  const value=document.getElementById("reportPeriod").value;
+  const rows=selectedRows(level,value), cats=categoryReportFiltered(level,value);
+  document.getElementById("reportPeriodTitle").textContent=`Detalle: ${selectedLabel(level,value)}`;
+  document.getElementById("periodReportTable").innerHTML=`<thead><tr><th>Periodo</th><th>Fecha</th><th>Ingresos plan</th><th>Ingresos reales</th><th>Egresos plan</th><th>Egresos reales</th><th>Variación</th><th>Saldo proyectado</th><th>Saldo real</th></tr></thead><tbody>${
+    rows.length?rows.map(r=>`<tr><td class="center">${monthLabel(r.budgetMonth)} · ${r.fortnight===1?"1.ª":"2.ª"}</td><td>${dateLabel(r.date)}</td><td class="num">${money(r.income+r.otherIncome)}</td><td class="num">${money(r.actualIncome)}</td><td class="num">${money(r.expenses)}</td><td class="num">${money(r.actualExpenses)}</td><td class="num ${r.expenses-r.actualExpenses<0?"negative":"positive"}">${money(r.expenses-r.actualExpenses)}</td><td class="num">${money(r.ending)}</td><td class="num">${r.actualBalance===null?"—":money(r.actualBalance)}</td></tr>`).join(""):`<tr><td colspan="9" class="empty">No hay periodos configurados para esta selección.</td></tr>`
+  }</tbody>`;
+  document.getElementById("categoryReportTable").innerHTML=categoryTable(cats);
+}
+function drawBase(canvas){
+  const dpr=window.devicePixelRatio||1, rect=canvas.getBoundingClientRect();
+  canvas.width=Math.max(300,rect.width*dpr);canvas.height=280*dpr;
+  const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);ctx.clearRect(0,0,rect.width,280);
+  return {ctx,w:rect.width,h:280,p:{l:48,r:16,t:20,b:38}};
+}
+function drawBarChart(canvas,labels,a,b){
+  const {ctx,w,h,p}=drawBase(canvas), max=Math.max(1,...a,...b), plotW=w-p.l-p.r, plotH=h-p.t-p.b, group=plotW/labels.length;
+  ctx.strokeStyle="#d0d5dd";ctx.fillStyle="#667085";ctx.font="12px system-ui";
+  for(let i=0;i<=4;i++){const y=p.t+plotH*i/4;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.fillText(money(max*(1-i/4)).replace("CRC","").trim(),2,y+4)}
+  labels.forEach((l,i)=>{const bw=Math.min(24,group*.28),x=p.l+i*group+group/2;const ah=a[i]/max*plotH,bh=b[i]/max*plotH;
+    ctx.fillStyle="#c4497b";ctx.fillRect(x-bw-2,p.t+plotH-ah,bw,ah);ctx.fillStyle="#6f2148";ctx.fillRect(x+2,p.t+plotH-bh,bw,bh);
+    ctx.fillStyle="#667085";ctx.textAlign="center";ctx.fillText(l,x,h-14)
+  });ctx.textAlign="left";
+}
+function drawLineChart(canvas,labels,a,b){
+  const valid=[...a,...b].filter(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))).map(Number);
+  const {ctx,w,h,p}=drawBase(canvas), min=Math.min(0,...valid), max=Math.max(1,...valid), span=max-min||1, plotW=w-p.l-p.r,plotH=h-p.t-p.b;
+  ctx.strokeStyle="#d0d5dd";ctx.fillStyle="#667085";ctx.font="12px system-ui";
+  for(let i=0;i<=4;i++){const y=p.t+plotH*i/4;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.fillText(money(max-span*i/4).replace("CRC","").trim(),2,y+4)}
+  function line(vals,color){
+    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;ctx.beginPath();let started=false;
+    vals.forEach((v,i)=>{if(v===null||v===undefined)return;const x=p.l+(labels.length===1?0:i*plotW/(labels.length-1)),y=p.t+(max-Number(v))/span*plotH;if(started)ctx.lineTo(x,y);else{ctx.moveTo(x,y);started=true}});
+    ctx.stroke();
+    vals.forEach((v,i)=>{if(v===null||v===undefined)return;const x=p.l+(labels.length===1?0:i*plotW/(labels.length-1)),y=p.t+(max-Number(v))/span*plotH;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill()})
+  }
+  line(a,"#c4497b");line(b,"#6f2148");labels.forEach((l,i)=>{const x=p.l+(labels.length===1?0:i*plotW/(labels.length-1));ctx.fillStyle="#667085";ctx.textAlign="center";ctx.fillText(l,x,h-14)});ctx.textAlign="left";
+}
+
+function openDebt(d=null){
+  const dialog=document.getElementById("debtDialog");
+  document.getElementById("debtDialogTitle").textContent=d?"Editar deuda":"Agregar deuda";
+  ["Id","Type","Name","Usd","Crc","Fx","Limit","Minimum","PayDay","Rate","Priority","Goal","Notes"].forEach(k=>{
+    const el=document.getElementById("d"+k);if(!el)return;
+    const map={Id:"id",Type:"type",Name:"name",Usd:"usd",Crc:"crc",Fx:"fx",Limit:"limit",Minimum:"minimum",PayDay:"payDay",Rate:"rate",Priority:"priority",Goal:"goal",Notes:"notes"};
+    el.value=d?.[map[k]]??({Fx:460,Usd:0,Crc:0,Limit:0,Minimum:0,Priority:data.debts.length+1}[k]??"")
+  });
+  dialog.showModal();
+}
+
+function bind(){
+  document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.view)));
+  syncQuarterSelectors();
+  fillSelect(document.getElementById("mType"),MOVEMENT_TYPES);
+  fillSelect(document.getElementById("mCategory"),CATEGORIES);
+  fillSelect(document.getElementById("mAccount"),ACCOUNTS);
+  fillSelect(document.getElementById("movementTypeFilter"),["",...MOVEMENT_TYPES]);
+  document.getElementById("movementTypeFilter").options[0].text="Todos";
+  document.getElementById("mDate").value=new Date().toISOString().slice(0,10);
+  refreshDebtSelect();
+  document.getElementById("rtDate").value=todayIso();
+  refreshReserveSelect();
+
+  document.getElementById("planQuarter").addEventListener("change",renderPlan);
+  document.getElementById("expandPlanBtn").addEventListener("click",()=>setAllPlanMonths(true));
+  document.getElementById("collapsePlanBtn").addEventListener("click",()=>setAllPlanMonths(false));
+  ["dashboard","movement","report"].forEach(prefix=>{
+    document.getElementById(prefix+"Level").addEventListener("change",()=>{
+      syncPeriodFilter(prefix);
+      if(prefix==="dashboard")renderDashboard();
+      if(prefix==="movement")renderMovements();
+      if(prefix==="report")renderReports();
+    });
+    document.getElementById(prefix+"Period").addEventListener("change",()=>{
+      if(prefix==="dashboard")renderDashboard();
+      if(prefix==="movement")renderMovements();
+      if(prefix==="report")renderReports();
+    });
+  });
+  document.getElementById("movementTypeFilter").addEventListener("change",renderMovements);
+  document.getElementById("mType").addEventListener("change",()=>{
+    if(document.getElementById("mType").value==="Pago deuda"&&document.getElementById("mCategory").value==="Ingreso principal"){
+      document.getElementById("mCategory").value="Tarjetas / acuerdos";
+    }
+  });
+  document.getElementById("mDebt").addEventListener("change",()=>{
+    const d=data.debts.find(x=>x.id===document.getElementById("mDebt").value);
+    if(d&&document.getElementById("mType").value==="Pago deuda"){
+      document.getElementById("mCategory").value=d.type==="Tarjeta"?"Tarjetas / acuerdos":"Otros";
+    }
+  });
+  document.getElementById("reconcileBtn").addEventListener("click",openReconcile);
+  document.getElementById("cancelReconcileBtn").addEventListener("click",()=>document.getElementById("reconcileDialog").close());
+  document.getElementById("rDate").addEventListener("change",updateReconcilePreview);
+  document.getElementById("rAmount").addEventListener("input",updateReconcilePreview);
+  document.getElementById("reconcileForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const date=document.getElementById("rDate").value, amount=num(document.getElementById("rAmount").value);
+    const p=periodForDate(date);if(!p)return alert("La fecha no pertenece a un periodo configurado.");
+    const calculatedBefore=actualBalanceAt(date);
+    data.reconciliations.push({id:id(),date,amount,afterSeq:num(data.movementSeq),calculatedBefore,note:document.getElementById("rNote").value.trim(),createdAt:new Date().toISOString()});
+    save();document.getElementById("reconcileDialog").close();syncQuarterSelectors();renderDashboard();renderPlan();
+  });
+  document.getElementById("printBtn").addEventListener("click",()=>window.print());
+
+  document.getElementById("movementForm").addEventListener("submit",e=>{
+    e.preventDefault();const date=document.getElementById("mDate").value,p=periodForDate(date);
+    if(!p)return alert("La fecha no pertenece a los trimestres configurados.");
+    const type=document.getElementById("mType").value, debtId=document.getElementById("mDebt").value;
+    const debtObj=data.debts.find(d=>d.id===debtId);
+    if(type==="Pago deuda"&&!debtObj)return alert("Selecciona la deuda o acreedor.");
+    const seq=++data.movementSeq;
+    data.movements.push({id:id(),seq,createdAt:new Date().toISOString(),date,type,category:document.getElementById("mCategory").value,debtId:debtObj?.id||"",debt:debtObj?.name||"",account:document.getElementById("mAccount").value,description:document.getElementById("mDescription").value.trim(),amount:num(document.getElementById("mAmount").value),period:periodKey(p),quarter:budgetQuarter(p)});
+    save();e.target.reset();document.getElementById("mDate").value=new Date().toISOString().slice(0,10);fillSelect(document.getElementById("mType"),MOVEMENT_TYPES);fillSelect(document.getElementById("mCategory"),CATEGORIES);fillSelect(document.getElementById("mAccount"),ACCOUNTS);refreshDebtSelect();renderMovements();
+  });
+
+  document.addEventListener("click",e=>{
+    const monthToggle=e.target.closest("[data-toggle-plan-month]");if(monthToggle){const section=monthToggle.closest(".plan-month");setPlanMonthOpen(section,monthToggle.getAttribute("aria-expanded")!=="true")}
+    const rcEdit=e.target.closest("[data-edit-receivable]");if(rcEdit)editReceivable(data.receivables.find(r=>r.id===rcEdit.dataset.editReceivable));
+    const rcPaid=e.target.closest("[data-paid-receivable]");if(rcPaid){const r=data.receivables.find(x=>x.id===rcPaid.dataset.paidReceivable);if(r){r.status="paid";r.paidAt=todayIso();save();renderReceivables()}}
+    const rcReopen=e.target.closest("[data-reopen-receivable]");if(rcReopen){const r=data.receivables.find(x=>x.id===rcReopen.dataset.reopenReceivable);if(r){r.status="pending";r.paidAt="";save();renderReceivables()}}
+    const rcDelete=e.target.closest("[data-delete-receivable]");if(rcDelete&&confirm("¿Eliminar este monto por cobrar?")){data.receivables=data.receivables.filter(r=>r.id!==rcDelete.dataset.deleteReceivable);save();resetReceivableForm();renderReceivables()}
+    const editReserve=e.target.closest("[data-edit-reserve]");if(editReserve)openReserve((data.reserves||[]).find(r=>r.id===editReserve.dataset.editReserve));
+    const delReserveTxn=e.target.closest("[data-delete-reserve-txn]");if(delReserveTxn&&confirm("¿Eliminar este movimiento de fondo?")){data.reserveMovements=(data.reserveMovements||[]).filter(t=>t.id!==delReserveTxn.dataset.deleteReserveTxn);save();renderCapital();renderDashboard();renderPlan()}
+    const del=e.target.closest("[data-delete-movement]");if(del&&confirm("¿Eliminar este movimiento?")){data.movements=data.movements.filter(m=>m.id!==del.dataset.deleteMovement);save();renderMovements()}
+    const edit=e.target.closest("[data-edit-debt]");if(edit)openDebt(data.debts.find(d=>d.id===edit.dataset.editDebt));
+    const delRec=e.target.closest("[data-delete-reconcile]");
+    if(delRec&&confirm("¿Eliminar esta conciliación de saldo?")){data.reconciliations=data.reconciliations.filter(r=>r.id!==delRec.dataset.deleteReconcile);save();renderDashboard();renderPlan()}
+    const pay=e.target.closest("[data-pay-debt]");
+    if(pay){
+      const d=data.debts.find(x=>x.id===pay.dataset.payDebt);navigate("movements");
+      document.getElementById("mType").value="Pago deuda";
+      document.getElementById("mDebt").value=d.id;
+      document.getElementById("mCategory").value=d.type==="Tarjeta"?"Tarjetas / acuerdos":"Otros";
+      document.getElementById("mDescription").value=`Pago ${d.name}`;
+      document.getElementById("mAmount").focus();
+    }
+  });
+  document.addEventListener("change",e=>{
+    if(e.target.dataset.plan){
+      const [key,field]=e.target.dataset.plan.split("|"),p=periodByKey(key);
+      if(p){p[field]=field==="date"?e.target.value:num(e.target.value);const meta=deriveBudgetMeta(p);p.budgetMonth=meta.budgetMonth;p.fortnight=meta.fortnight;save();syncQuarterSelectors();renderPlan()}
+    }
+    if(e.target.dataset.budget){
+      const [key,cat]=e.target.dataset.budget.split("|"),p=periodByKey(key);
+      if(p){p.budgets[cat]=num(e.target.value);save();renderPlan()}
+    }
+  });
+
+  document.getElementById("rcDate").value=todayIso();
+  document.getElementById("rcCancelEditBtn").addEventListener("click",resetReceivableForm);
+  document.getElementById("receivableForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const rid=document.getElementById("rcId").value, status=document.getElementById("rcStatus").value;
+    const existing=data.receivables.find(r=>r.id===rid);
+    const obj={id:rid||id(),person:document.getElementById("rcPerson").value.trim(),reason:document.getElementById("rcReason").value.trim(),date:document.getElementById("rcDate").value,amount:num(document.getElementById("rcAmount").value),status,paidAt:status==="paid"?(existing?.paidAt||todayIso()):""};
+    const i=data.receivables.findIndex(r=>r.id===rid);i>=0?data.receivables[i]=obj:data.receivables.push(obj);
+    save();resetReceivableForm();renderReceivables();
+  });
+
+  document.getElementById("addReserveBtn").addEventListener("click",()=>openReserve());
+  document.getElementById("cancelReserveBtn").addEventListener("click",()=>document.getElementById("reserveDialog").close());
+  document.getElementById("reserveForm").addEventListener("submit",e=>{
+    e.preventDefault();const rid=document.getElementById("fId").value;
+    const obj={id:rid||id(),name:document.getElementById("fName").value.trim(),type:document.getElementById("fType").value,target:num(document.getElementById("fTarget").value),openingAmount:num(document.getElementById("fOpeningAmount").value),openingDate:document.getElementById("fOpeningDate").value,location:document.getElementById("fLocation").value.trim(),rate:num(document.getElementById("fRate").value),notes:document.getElementById("fNotes").value.trim()};
+    const i=(data.reserves||[]).findIndex(r=>r.id===rid);i>=0?data.reserves[i]={...data.reserves[i],...obj}:data.reserves.push(obj);
+    save();document.getElementById("reserveDialog").close();refreshReserveSelect();renderCapital();renderDashboard();renderPlan();
+  });
+  document.getElementById("reserveTxnForm").addEventListener("submit",e=>{
+    e.preventDefault();const reserveId=document.getElementById("rtReserve").value;if(!reserveId)return alert("Primero agrega o selecciona un fondo.");
+    data.reserveMovements.push({id:id(),date:document.getElementById("rtDate").value,reserveId,type:document.getElementById("rtType").value,amount:num(document.getElementById("rtAmount").value),description:document.getElementById("rtDescription").value.trim(),createdAt:new Date().toISOString()});
+    save();e.target.reset();document.getElementById("rtDate").value=todayIso();refreshReserveSelect(reserveId);renderCapital();renderDashboard();renderPlan();
+  });
+
+  document.getElementById("addDebtBtn").addEventListener("click",()=>openDebt());
+  document.getElementById("cancelDebtBtn").addEventListener("click",()=>document.getElementById("debtDialog").close());
+  document.getElementById("debtForm").addEventListener("submit",e=>{
+    e.preventDefault();const did=document.getElementById("dId").value;
+    const obj={id:did||id(),type:document.getElementById("dType").value,name:document.getElementById("dName").value.trim(),usd:num(document.getElementById("dUsd").value),crc:num(document.getElementById("dCrc").value),fx:num(document.getElementById("dFx").value),limit:num(document.getElementById("dLimit").value),minimum:num(document.getElementById("dMinimum").value),payDay:document.getElementById("dPayDay").value.trim(),rate:document.getElementById("dRate").value.trim(),priority:num(document.getElementById("dPriority").value),goal:document.getElementById("dGoal").value.trim(),notes:document.getElementById("dNotes").value.trim()};
+    const i=data.debts.findIndex(d=>d.id===did),oldName=i>=0?data.debts[i].name:"";
+    i>=0?data.debts[i]=obj:data.debts.push(obj);
+    if(i>=0&&oldName!==obj.name)data.movements.filter(m=>m.debtId===obj.id||(!m.debtId&&m.debt===oldName)).forEach(m=>{m.debtId=obj.id;m.debt=obj.name});
+    save();document.getElementById("debtDialog").close();refreshDebtSelect();renderDebts()
+  });
+
+  document.getElementById("newQuarterBtn").addEventListener("click",()=>{
+    const q=prompt("Nombre del trimestre, por ejemplo 2027-T2");
+    if(!q||planningQuarters().includes(q))return;
+    const rows=makeQuarter(q);if(!rows.length)return alert("Formato inválido. Usa AAAA-T1, AAAA-T2, AAAA-T3 o AAAA-T4.");
+    data.periods.push(...rows);save();syncQuarterSelectors();document.getElementById("planQuarter").value=q;renderPlan()
+  });
+  document.getElementById("duplicateQuarterBtn").addEventListener("click",()=>{
+    const source=document.getElementById("planQuarter").value,q=prompt("Nombre del nuevo trimestre, por ejemplo 2027-T2");
+    if(!q||planningQuarters().includes(q))return;
+    const src=getQuarterPeriods(source),rows=makeQuarter(q);if(!rows.length)return alert("Formato inválido.");
+    rows.forEach((p,i)=>{const s=src[i];if(s){p.income=s.income;p.otherIncome=s.otherIncome;p.budgets=clone(s.budgets)}});
+    data.periods.push(...rows);save();syncQuarterSelectors();document.getElementById("planQuarter").value=q;renderPlan()
+  });
+
+  document.getElementById("exportBtn").addEventListener("click",()=>download(`respaldo-finanzas-gloriana-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),"application/json"));
+  document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+  document.getElementById("importFile").addEventListener("change",async e=>{
+    try{const imported=JSON.parse(await e.target.files[0].text());if(!imported.periods||!imported.movements||!imported.debts)throw Error();data=migrateData(imported);save();syncQuarterSelectors();refreshDebtSelect();navigate("dashboard");alert("Respaldo restaurado en Finanzas de Gloriana v1.3.")}catch{alert("El archivo no es un respaldo válido.")}e.target.value=""
+  });
+  document.getElementById("resetBtn").addEventListener("click",()=>{if(confirm("Esto eliminará todos los cambios locales. ¿Continuar?")){data=migrateData(clone(initialData));save();syncQuarterSelectors();refreshDebtSelect();navigate("dashboard")}});
+
+  document.getElementById("exportMovementsCsv").addEventListener("click",()=>{
+    const level=document.getElementById("movementLevel").value,value=document.getElementById("movementPeriod").value;
+    const rows=selectedMovements(level,value),headers=["Fecha","Mes presupuestario","Quincena","Tipo","Categoría","Deuda","Cuenta","Descripción","Monto CRC","Periodo","Trimestre"];
+    const csv=[headers,...rows.map(m=>{const p=movementPeriod(m);return [m.date,p?.budgetMonth||"",p?.fortnight||"",m.type,m.category,movementDebtName(m),m.account,m.description,m.amount,m.period,movementBudgetQuarter(m)]})].map(r=>r.map(csvEscape).join(",")).join("\n");
+    download(`movimientos-${level}-${value}.csv`,"\ufeff"+csv,"text/csv")
+  });
+  document.getElementById("exportReportCsv").addEventListener("click",()=>{
+    const level=document.getElementById("reportLevel").value,value=document.getElementById("reportPeriod").value;
+    const rows=categoryReportFiltered(level,value),headers=["Categoría","Presupuesto","Real","Disponible","Porcentaje usado"];
+    const csv=[headers,...rows.map(r=>[r.category,r.budget,r.actual,r.variance,r.used])].map(r=>r.map(csvEscape).join(",")).join("\n");
+    download(`comparativo-${level}-${value}.csv`,"\ufeff"+csv,"text/csv")
+  });
+  window.addEventListener("resize",()=>{if(document.getElementById("view-dashboard").classList.contains("active"))renderDashboard()});
+}
+function refreshDebtSelect(selected=""){
+  const el=document.getElementById("mDebt");if(!el)return;
+  const current=selected||el.value;
+  fillObjectSelect(el,[{value:"",label:"Sin deuda"},...data.debts.map(d=>({value:d.id,label:d.name}))],current);
+}
+
+bind();renderDashboard();
+</script>
+</body>
+</html>
