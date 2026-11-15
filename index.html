@@ -1395,6 +1395,24 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 
 .one-budget-savings{display:block;font-size:.67rem;color:var(--muted);margin-top:4px}
 #fBudgetCategory+small,#oneCentralGoalCategory+small{display:block;font-size:.73rem;margin-top:5px}
+
+#view-capital .one-goal-card{background:var(--surface)}
+#view-capital .one-goal-hint{color:var(--muted)}
+.one-goal-linked{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--border);padding:9px 0;margin-top:10px;font-size:.72rem}
+.one-goal-linked span{color:var(--muted)}
+.one-goal-linked strong{color:var(--text);font-weight:630}
+.one-goal-activity{margin-top:22px;border:1px solid var(--border);border-radius:11px;background:var(--surface);padding:16px 19px}
+.one-goal-activity-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.one-goal-activity h2{font-size:.97rem;margin:0}
+.one-goal-activity-head span{font-size:.71rem;color:var(--muted)}
+.one-goal-activity-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center}
+.one-goal-activity-row:last-child{border-bottom:0}
+.one-goal-activity-row strong{display:block;font-size:.78rem}
+.one-goal-activity-row small{display:block;color:var(--muted);font-size:.69rem;margin-top:4px}
+.one-goal-activity-row b{white-space:nowrap;font-size:.8rem}
+.one-goal-activity-empty{font-size:.76rem;color:var(--muted);margin:9px 0 0}
+#capitalLegacyDetails[hidden]{display:none!important}
+
 </style>
 </head>
 <body>
@@ -1808,8 +1826,9 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
     <div class="one-goal-summary" id="goalSummary"></div>
     <div class="one-goal-toolbar"><h2>Objetivos de ahorro</h2><label>Mostrar <select id="goalStatusFilter" aria-label="Filtrar metas"><option value="active">Activas</option><option value="archived">Archivadas</option><option value="all">Todas</option></select></label></div>
     <div id="goalCardGrid" class="one-goal-grid"></div>
-    <p class="one-goal-disclaimer">Los aportes son transferencias entre tus propios fondos, no gastos. La sugerencia mensual es orientativa: no mueve dinero automáticamente.</p>
-    <details class="one-goal-advanced" id="capitalLegacyDetails">
+    <section class="one-goal-activity"><div class="one-goal-activity-head"><h2>Actividad reciente</h2><span>Aportes y retiros</span></div><div id="oneGoalActivityList"></div></section>
+    <p class="one-goal-disclaimer">Ahorrá desde Movimientos o desde cada meta. El aporte reduce el saldo operativo, sin contarse como un gasto.</p>
+    <div id="capitalLegacyDetails" hidden aria-hidden="true" style="display:none!important">
       <summary>Capital protegido e historial completo de fondos</summary>
       <div class="one-goal-advanced-body">
         <p class="one-goal-disclaimer">Administrá fondos protegidos, rendimientos, ajustes y operaciones históricas desde esta sección.</p>
@@ -1837,7 +1856,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
       <div class="table-wrap" style="margin-top:14px"><table id="reserveTxnTable"></table></div>
     </div>
       </div>
-    </details>
+    </div>
   </section>
 
   <section class="view" id="view-categories">
@@ -1897,7 +1916,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
   <div class="one-module-fixed"><strong>Siempre visibles:</strong> Inicio · Presupuesto · Movimientos</div>
   <label class="one-module-item"><input type="checkbox" id="moduleDebtsToggle"><span><strong>Deudas</strong><small>Préstamos, tarjetas y pagos pendientes.</small></span></label>
   <label class="one-module-item"><input type="checkbox" id="moduleCollectionsToggle"><span><strong>Cobros · Beta 2.1</strong><small>Personas, abonos parciales, grupos, recurrencias y recordatorios en Inicio.</small></span></label>
-  <label class="one-module-item"><input type="checkbox" id="moduleGoalsToggle"><span><strong>Metas · Beta 1.0</strong><small>Ahorro por objetivos, aportes, retiros y capital protegido.</small></span></label>
+  <label class="one-module-item"><input type="checkbox" id="moduleGoalsToggle"><span><strong>Metas · Beta 1.0</strong><small>Metas de ahorro, aportes e historial.</small></span></label>
   <div class="one-module-footer"><button type="button" class="btn" id="closeModulesBtn">Listo</button></div>
 </dialog>
 <dialog id="categoryManagerDialog" class="rastro-category-manager">
@@ -1998,15 +2017,15 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
     <form id="reserveForm" class="form-grid">
       <input type="hidden" id="fId">
       <div class="field"><label>Nombre</label><input id="fName" required></div>
-      <div class="field"><label>Tipo</label><select id="fType"><option value="protected">Capital protegido</option><option value="goal">Meta / reserva</option></select></div>
+      <div class="field" hidden><label>Tipo histórico</label><select id="fType"><option value="goal">Meta</option><option value="protected">Histórico</option></select></div>
       <div class="field"><label>Meta (opcional)</label><div class="money-input"><input id="fTarget" type="number" min="0" step="0.01" value="0"><select id="fTargetCurrency"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
       <div class="field"><label>Fecha objetivo (opcional)</label><input id="fTargetDate" type="date"></div>
       <div class="field wide"><label>Categoría de ahorro en Presupuesto (opcional)</label><select id="fBudgetCategory"></select><small class="muted">Los aportes cuentan como ahorro ejecutado en esta categoría, no como un gasto nuevo.</small></div>
-      <div class="field"><label>Saldo inicial ya separado</label><div class="money-input"><input id="fOpeningAmount" type="number" min="0" step="0.01" value="0"><select id="fOpeningCurrency"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
+      <div class="field"><label>Ahorrado inicialmente (opcional)</label><div class="money-input"><input id="fOpeningAmount" type="number" min="0" step="0.01" value="0"><select id="fOpeningCurrency"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
       <div class="field"><label>Fecha inicial</label><input id="fOpeningDate" type="date" required></div>
       <p class="one-goal-form-note wide">El saldo inicial debe ser dinero que ya estaba reservado fuera de tu saldo operativo. Para apartar dinero de tu saldo actual, iniciá en cero y registrá un <strong>Aporte</strong>: así no se cuenta dos veces.</p>
-      <div class="field"><label>Ubicación</label><input id="fLocation" placeholder="Ej. MultiMoney, cuenta bancaria"></div>
-      <div class="field"><label>Tasa anual % (opcional)</label><input id="fRate" type="number" min="0" step=".01" value="0"></div>
+      <div class="field" hidden><label>Ubicación</label><input id="fLocation" placeholder="Ej. MultiMoney, cuenta bancaria"></div>
+      <div class="field" hidden><label>Tasa histórica</label><input id="fRate" type="number" min="0" step=".01" value="0"></div>
       <div class="field wide"><label>Notas</label><textarea id="fNotes"></textarea></div>
       <div class="dialog-actions wide">
         <button type="button" class="btn secondary" id="cancelReserveBtn">Cancelar</button>
@@ -2057,7 +2076,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
   <div class="dialog-body">
 <button class="dialog-close" type="button" aria-label="Cerrar">×</button>
     <h2>Actualizar saldo real</h2>
-    <p class="muted">Ingresa únicamente el saldo disponible para operar, excluyendo capital protegido y fondos reservados. Este ajuste no crea un ingreso ni un gasto.</p>
+    <p class="muted">Ingresá únicamente el saldo disponible para operar, excluyendo ahorros ya apartados. Este ajuste no crea un ingreso ni un gasto.</p>
     <form id="reconcileForm" class="form-grid">
       <div class="field"><label>Fecha de conciliación</label><input type="date" id="rDate" required></div>
       <div class="field"><label>Saldo calculado antes del ajuste</label><input id="rCalculated" readonly></div>
@@ -3518,7 +3537,7 @@ function renderDashboard(){
   const liquidPatrimony=operatingToday+reserves.total;
   const cards=[
     ["Saldo operativo hoy",operatingToday,operatingToday>=0?"good":"bad"],
-    ["Capital protegido",reserves.protectedTotal,""],
+    
     ["Fondos por objetivo",reserves.goalTotal,""],
     ["Patrimonio líquido",liquidPatrimony,"good"],
     ["Ingresos presupuestados",summary.plannedIncome,""],
@@ -4471,6 +4490,7 @@ function oneRenderGoalCards(){
       .sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt).localeCompare(String(a.createdAt)))
       .slice(0,5);
     const status=archived?'<span class="one-goal-state">Archivada</span>':"";
+    const linkedBudget=categoryById(oneGoalBudgetCategory(r))?.name||"Sin vincular";
     const ops=history.map(t=>'<div class="one-goal-history-row"><span>'+dateLabel(t.date)+' · '+safe(t.type)+'</span><strong>'+originalMoney(t.amount,t.currency||"CRC")+'</strong></div>').join("");
     return '<article class="one-goal-card">'+
       '<div class="one-goal-card-top"><div><span class="one-goal-eyebrow">META</span><h3>'+safe(r.name)+'</h3></div>'+status+'</div>'+
@@ -4478,6 +4498,7 @@ function oneRenderGoalCards(){
       (target>0?'<div class="one-goal-bar" role="progressbar" aria-label="Progreso de '+safe(r.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(pct)+'"><span style="width:'+pct.toFixed(1)+'%"></span></div>':'')+
       '<div class="one-goal-stats"><span>'+(target>0?Math.round(pct)+'% completado · Faltan '+money(remaining):'Sin monto objetivo')+'</span><span>'+safe(dateInfo)+'</span></div>'+
       '<p class="one-goal-hint">'+safe(hint)+'</p>'+
+      '<div class="one-goal-linked"><span>Presupuesto</span><strong>'+safe(linkedBudget)+'</strong></div>'+
       '<div class="one-goal-actions">'+(archived?'':
         '<button class="btn small" type="button" data-goal-txn="'+safe(r.id)+'" data-goal-type="Aporte">+ Aportar</button>')+
         '<button class="btn secondary small" type="button" data-edit-reserve="'+safe(r.id)+'">Editar</button></div>'+
@@ -4490,6 +4511,13 @@ function oneRenderGoalCards(){
         '<button type="button" class="btn secondary small" data-archive-reserve="'+safe(r.id)+'">Archivar</button>')+
       '</div></div></details></article>';
   }).join(""):'<div class="one-goal-empty">No hay metas en esta vista. Podés crear tu primera meta sin salir de One Less One.</div>';
+  const activity=document.getElementById("oneGoalActivityList");
+  if(activity){
+    const names=new Map(goals.map(r=>[r.id,r.name]));
+    const recent=(data.reserveMovements||[]).filter(t=>names.has(t.reserveId))
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,8);
+    activity.innerHTML=recent.length?recent.map(t=>'<div class="one-goal-activity-row"><span><strong>'+safe(names.get(t.reserveId))+'</strong><small>'+dateLabel(t.date)+' · '+safe(t.type)+'</small></span><b>'+originalMoney(t.amount,t.currency||"CRC")+'</b></div>').join(""):'<p class="one-goal-activity-empty">Tus aportes aparecerán aquí.</p>';
+  }
 }
 function oneGoalOpenTransaction(reserveId,type="Aporte"){
   const r=(data.reserves||[]).find(x=>x.id===reserveId);
