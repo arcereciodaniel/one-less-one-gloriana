@@ -2517,6 +2517,174 @@ function migrateData(raw){
   raw.version=6.2;
   return raw;
 }
+
+/* Migración automática Gloriana 1.3.1 -> one - one. Nunca elimina el origen. */
+const ONE_GLORIANA_LEGACY_KEY="gloriana_finanzas_local_v1";
+const ONE_GLORIANA_LEGACY_BACKUP_KEY="gloriana_one_less_one_legacy_backup_v131";
+const ONE_GLORIANA_TARGET_BACKUP_KEY="gloriana_one_less_one_before_legacy_import_v2";
+let oneGlorianaMigrationState={type:"none"};
+function oneGlorianaIsRecord(value){return value!==null&&typeof value==="object"&&!Array.isArray(value)}
+function oneGlorianaArray(value){return Array.isArray(value)?value:[]}
+function oneGlorianaSum(rows,selector){return rows.reduce((sum,row)=>sum+Number(selector(row)||0),0)}
+function oneGlorianaSameAmount(a,b){return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<0.005}
+function oneGlorianaHasNewFinancialData(raw){
+  if(!oneGlorianaIsRecord(raw))return true;
+  if(["movements","debts","reconciliations","reserves","reserveMovements","sharedCharges","sharedChargeGroups","receivableRecurring","movementTemplates"].some(key=>oneGlorianaArray(raw[key]).length))return true;
+  if(oneGlorianaArray(raw.periods).some(p=>Number(p.income)||Number(p.otherIncome)||p.opening!==null&&p.opening!==undefined&&Number(p.opening)!==0||
+    Object.values(p.budgets||{}).some(v=>Number(v)!==0)||Object.values(p.categoryBudgets||{}).some(v=>Number(v)!==0)))return true;
+  // No reemplazar categorías que la persona haya personalizado.
+  const defaultsById=new Map(DEFAULT_CATEGORIES.map(c=>[c.id,c.name]));
+  if(oneGlorianaArray(raw.categories).some(c=>!defaultsById.has(c.id)||defaultsById.get(c.id)!==c.name))return true;
+  return false;
+}
+function oneGlorianaConvertLegacy(rawText){
+  if(rawText.length>RESTORE_MAX_BYTES)throw Error("El historial anterior excede el tamaño admitido para migración automática.");
+  const source=JSON.parse(rawText);
+  if(!oneGlorianaIsRecord(source))throw Error("El historial anterior no es un objeto válido.");
+  for(const key of ["periods","movements","debts"]){
+    if(!Array.isArray(source[key])||!source[key].every(oneGlorianaIsRecord))throw Error("La lista anterior "+key+" es inválida.");
+  }
+  for(const key of ["reconciliations","reserves","reserveMovements","receivables"]){
+    if(source[key]!==undefined&&(!Array.isArray(source[key])||!source[key].every(oneGlorianaIsRecord)))
+      throw Error("La lista anterior "+key+" no tiene el formato esperado.");
+  }
+  if(!source.periods.length)throw Error("El historial anterior no contiene períodos financieros.");
+  if(source.version!==undefined&&(Number(source.version)>1.5||!Number.isFinite(Number(source.version))))
+    throw Error("La versión del historial anterior es desconocida.");
+  const converted=clone(source);
+  converted.version=6.2; // La conciliación v1.3.1 ya era saldo operativo: nunca restar fondos dos veces.
+  delete converted.categorySchemaVersion;
+  delete converted.incomeSchemaVersion;
+  converted.sharedChargeGroups=[];
+  converted.receivableRecurring=[];
+  converted.sharedCharges=oneGlorianaArray(source.receivables).map((r,index)=>{
+    const chargeId=String(r.id||"legacy-receivable-"+index);
+    const date=String(r.date||"");
+    const amount=Number(r.amount);
+    if(!restoreValidDate(date)||!Number.isFinite(amount)||amount<0)
+      throw Error("Hay un cobro anterior con fecha o monto inválidos.");
+    const isPaid=r.status==="paid";
+    const paidAt=isPaid&&restoreValidDate(r.paidAt)?r.paidAt:date;
+    return {
+      id:chargeId,groupId:"",person:String(r.person||""),date,dueDate:date,
+      remindBeforeDays:0,payments:isPaid&&amount>0?[{id:chargeId+"-abono-anterior",date:paidAt,amount,note:"Pago registrado en la versión anterior"}]:[],
+      snoozedUntil:"",chargeMonth:date.slice(0,7),kind:"Cobro anterior",
+      description:String(r.reason||""),amount,currency:"CRC",
+      status:isPaid?"paid":"pending",paidAt:isPaid?paidAt:"",
+      notes:"Importado de Finanzas de Gloriana v1.3.1",sourceRecurringId:""
+    };
+  });
+  // Conservar además el registro original por trazabilidad, sin mostrarlo dos veces en Cobros.
+  converted.legacyReceivables=clone(oneGlorianaArray(source.receivables));
+  const prepared=restorePrepare(converted);
+  const countKeys=["periods","movements","debts","reconciliations","reserves","reserveMovements","sharedCharges"];
+  for(const key of countKeys){
+    if(oneGlorianaArray(prepared[key]).length!==oneGlorianaArray(converted[key]).length)
+      throw Error("La migración alteró la cantidad de registros de "+key+".");
+  }
+  const sumChecks=[
+    ["movimientos",source.movements,prepared.movements,r=>r.amount],
+    ["ingresos presupuestados",source.periods,prepared.periods,r=>r.income],
+    ["otros ingresos presupuestados",source.periods,prepared.periods,r=>r.otherIncome],
+    ["presupuestos de gastos",source.periods,prepared.periods,r=>Object.values(r.budgets||{}).reduce((a,v)=>a+Number(v||0),0)],
+    ["fondos iniciales",oneGlorianaArray(source.reserves),prepared.reserves,r=>r.openingAmount],
+    ["movimientos de fondos",oneGlorianaArray(source.reserveMovements),prepared.reserveMovements,r=>r.amount],
+    ["conciliaciones",oneGlorianaArray(source.reconciliations),prepared.reconciliations,r=>r.amount],
+    ["cobros",oneGlorianaArray(source.receivables),prepared.sharedCharges,r=>r.amount]
+  ];
+  for(const [name,before,after,selector] of sumChecks){
+    if(!oneGlorianaSameAmount(oneGlorianaSum(before,selector),oneGlorianaSum(after,selector)))
+      throw Error("No coincide el importe total de "+name+".");
+  }
+  // Los pagos de deuda tenían categorías de gasto en 1.3.1. Asignarles un ID
+  // específico de tipo Pago deuda sin borrar el presupuesto de gasto anterior.
+  for(const m of prepared.movements){
+    if(m.type!=="Pago deuda")continue;
+    const categoryName=String(m.category||"Pago de deuda");
+    let category=prepared.categories.find(c=>c.name===categoryName&&c.type==="Pago deuda");
+    if(!category){
+      category={id:"legacy-debt-category-"+prepared.categories.length,name:categoryName,type:"Pago deuda",
+        group:"Deudas",budgetable:true,active:true,sort:(prepared.categories.length+1)*10};
+      prepared.categories.push(category);
+    }
+    m.categoryId=category.id;
+  }
+  prepared.legacyGlorianaMigration={
+    source:"Finanzas de Gloriana v1.3.1",date:new Date().toISOString(),
+    periods:source.periods.length,movements:source.movements.length,
+    debts:source.debts.length,receivables:oneGlorianaArray(source.receivables).length,
+    reserves:oneGlorianaArray(source.reserves).length,
+    reserveMovements:oneGlorianaArray(source.reserveMovements).length,
+    reconciliations:oneGlorianaArray(source.reconciliations).length
+  };
+  return prepared;
+}
+function oneGlorianaTryAutomaticMigration(previous){
+  const legacyRaw=localStorage.getItem(ONE_GLORIANA_LEGACY_KEY);
+  if(legacyRaw===null)return previous;
+  if(previous!==null){
+    const current=JSON.parse(previous);
+    if(current.legacyGlorianaMigration){oneGlorianaMigrationState={type:"already"};return previous}
+    if(oneGlorianaHasNewFinancialData(current)){
+      oneGlorianaMigrationState={type:"conflict"};
+      return previous; // No combinar ni pisar historiales distintos.
+    }
+  }
+  const migrated=oneGlorianaConvertLegacy(legacyRaw);
+  const newSerialized=JSON.stringify(migrated);
+  // Las dos copias deben escribirse y verificarse ANTES de tocar el destino.
+  localStorage.setItem(ONE_GLORIANA_LEGACY_BACKUP_KEY,legacyRaw);
+  if(localStorage.getItem(ONE_GLORIANA_LEGACY_BACKUP_KEY)!==legacyRaw)
+    throw Error("No se logró verificar la copia de seguridad del historial antiguo.");
+  if(previous!==null){
+    localStorage.setItem(ONE_GLORIANA_TARGET_BACKUP_KEY,previous);
+    if(localStorage.getItem(ONE_GLORIANA_TARGET_BACKUP_KEY)!==previous)
+      throw Error("No se logró respaldar la configuración actual.");
+  }
+  try{
+    localStorage.setItem(STORAGE_KEY,newSerialized);
+    if(localStorage.getItem(STORAGE_KEY)!==newSerialized)throw Error("La escritura no se pudo verificar.");
+  }catch(error){
+    if(previous!==null)localStorage.setItem(STORAGE_KEY,previous);
+    else localStorage.removeItem(STORAGE_KEY);
+    throw error;
+  }
+  oneGlorianaMigrationState={type:"done",counts:migrated.legacyGlorianaMigration};
+  return newSerialized;
+}
+function initOneGlorianaMigrationNotice(){
+  if(!["done","conflict","error"].includes(oneGlorianaMigrationState.type))return;
+  const div=document.createElement("aside");
+  div.id="one-gloriana-migration-notice";
+  div.setAttribute("role","status");
+  div.style.cssText="position:fixed;bottom:16px;left:16px;right:16px;max-width:560px;margin:auto;z-index:99999;padding:16px;background:var(--surface,#242424);color:var(--text,#fff);border:1px solid var(--border,#777);box-shadow:0 7px 28px #0003;border-radius:12px;font:inherit";
+  const title=document.createElement("strong"),info=document.createElement("p");
+  info.style.cssText="margin:8px 0 12px;font-size:13px;line-height:1.5";
+  if(oneGlorianaMigrationState.type==="done"){
+    const c=oneGlorianaMigrationState.counts;
+    title.textContent="Tus datos anteriores se migraron correctamente";
+    info.textContent="Se conservaron "+c.movements+" movimientos, "+c.debts+" deudas, "+c.receivables+" cobros y "+c.reserves+" fondos, junto con los presupuestos y conciliaciones. El historial antiguo sigue protegido en este navegador.";
+  }else if(oneGlorianaMigrationState.type==="conflict"){
+    title.textContent="Hay datos en ambas versiones";
+    info.textContent="Para evitar reemplazos o duplicados, los registros antiguos no se fusionaron automáticamente. La información de ambas versiones está intacta. Antes de continuar, revisá los respaldos.";
+  }else{
+    title.textContent="La migración automática no se completó";
+    info.textContent="No se eliminó el historial anterior. "+String(oneGlorianaMigrationState.reason||"Revisá los datos antes de volver a intentar.");
+  }
+  const copy=document.createElement("button");
+  copy.type="button";copy.textContent="Descargar respaldo anterior";
+  copy.style.cssText="padding:8px 12px;border:1px solid var(--border,#777);border-radius:7px;background:transparent;color:inherit;cursor:pointer;margin-right:8px";
+  copy.addEventListener("click",()=>{
+    const original=localStorage.getItem(ONE_GLORIANA_LEGACY_KEY);
+    if(original!==null)download("respaldo-gloriana-v1.3.1.json",original,"application/json");
+  });
+  const close=document.createElement("button");
+  close.type="button";close.textContent="Cerrar";
+  close.style.cssText="padding:8px 12px;border:1px solid var(--border,#777);border-radius:7px;background:transparent;color:inherit;cursor:pointer";
+  close.addEventListener("click",()=>div.remove());
+  div.append(title,info,copy,close);document.body.appendChild(div);
+}
+
 const RESTORE_SAFETY_KEY=STORAGE_KEY+"_pre_restore_v1";
 const RESET_SAFETY_KEY=STORAGE_KEY+"_pre_reset_v1";
 const RESTORE_MAX_BYTES=25*1024*1024;
@@ -2640,7 +2808,8 @@ function restoreSafely(raw){
 }
 function load(){
   try{
-    const saved=localStorage.getItem(STORAGE_KEY);
+    const source=localStorage.getItem(STORAGE_KEY);
+    const saved=oneGlorianaTryAutomaticMigration(source);
     storageHasSavedData=saved!==null;
     if(saved!==null){
       // Guardar una copia intacta antes de reinterpretar categorías/periodos.
@@ -2649,8 +2818,10 @@ function load(){
     }
     return migrateData(saved!==null?JSON.parse(saved):clone(initialData));
   }catch(e){
+    if(localStorage.getItem(ONE_GLORIANA_LEGACY_KEY)!==null)
+      oneGlorianaMigrationState={type:"error",reason:e.message};
     storageReadError=true;
-    console.error("Error al leer datos locales; se bloquea el guardado.",e);
+    console.error("Error al leer o migrar datos locales; se bloquea el guardado.",e);
     return migrateData(clone(initialData));
   }
 }
@@ -4112,43 +4283,7 @@ function printSharedStatement(groupId){
 @media(max-width:760px){.one-goal-grid{grid-template-columns:1fr}.one-goal-header{display:block}.one-goal-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.one-goal-amount strong{font-size:1.3rem}}
 @media(max-width:420px){.one-goal-summary{grid-template-columns:1fr}.one-goal-card{padding:17px}.one-goal-toolbar{flex-wrap:wrap}}
 </style></head><body><div class="brand">RASTRO</div><h1>${safe(group.name)}</h1><div class="muted">${group.person?`Desglose para ${safe(group.person)} · `:""}${safe(monthLabel(month))}</div><table><thead><tr><th>Fecha</th><th>Mes origen</th><th>Persona</th><th>Tipo</th><th>Concepto</th><th>Estado</th><th class="num">Monto</th></tr></thead><tbody>${rows.map(c=>{const origin=c.chargeMonth||monthKey(c.date),isCarry=isReceivableCarryover(c,month);return `<tr><td>${safe(dateLabel(c.date))}</td><td>${safe(monthLabel(origin))}${isCarry?`<br><span class="carry">Arrastre pendiente</span>`:""}</td><td>${safe(c.person)}</td><td>${safe(c.kind)}${c.sourceRecurringId?" · Mensual":""}</td><td>${safe(c.description)}</td><td>${cobroPaymentState(c)}</td><td class="num">${safe(money(receivableAmountCRC(c)))}${safe(c.currency&&normalizeCurrency(c.currency)!==displayCurrency()?` (original ${originalMoney(c.amount,c.currency)})`:``)}</td></tr>`}).join("")||`<tr><td colspan="7">Sin cobros</td></tr>`}</tbody></table><div class="total"><div><strong>Cargos del mes:</strong> ${safe(money(currentTotal))}</div><div><strong>Arrastre anterior:</strong> ${safe(money(carry))}</div><div><strong>Pendiente total:</strong> ${safe(money(pending))}</div></div><script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script>
-<script>
-/* Puente de respaldo no destructivo para el formato Gloriana 1.3.1 */
-(function(){
-  "use strict";
-  function offerLegacyBackup(){
-    var key="gloriana_finanzas_local_v1", raw;
-    try{raw=localStorage.getItem(key)}catch(e){return}
-    if(!raw)return;
-    if(document.getElementById("one-legacy-backup"))return;
-    var box=document.createElement("aside");
-    box.id="one-legacy-backup";
-    box.setAttribute("role","status");
-    box.style.cssText="position:fixed;bottom:18px;left:18px;right:18px;max-width:520px;margin:auto;background:var(--surface,#222);color:var(--text,#fff);border:1px solid var(--border,#777);border-radius:12px;padding:14px 16px;box-shadow:0 7px 28px #0003;z-index:999999;font:inherit";
-    var heading=document.createElement("strong");
-    heading.textContent="Respaldo de la versión anterior disponible";
-    var para=document.createElement("p");
-    para.textContent="Encontramos registros de Finanzas de Gloriana v1.3.1. Se conservan sin cambios en este navegador y no se incorporaron automáticamente a esta versión. Guardá una copia antes de borrar datos del navegador.";
-    para.style.cssText="font-size:13px;line-height:1.45;margin:8px 0 12px";
-    var downloadBtn=document.createElement("button");
-    downloadBtn.type="button";
-    downloadBtn.textContent="Descargar respaldo anterior";
-    downloadBtn.style.cssText="padding:9px 12px;border-radius:7px;background:var(--text,#eee);color:var(--bg,#111);cursor:pointer;border:1px solid currentColor;margin-right:8px";
-    downloadBtn.addEventListener("click",function(){
-      var blob=new Blob([raw],{type:"application/json"});
-      var u=URL.createObjectURL(blob),a=document.createElement("a");
-      a.href=u;a.download="respaldo-gloriana-version-anterior.json";document.body.appendChild(a);a.click();a.remove();
-      setTimeout(function(){URL.revokeObjectURL(u)},1000);
-    });
-    var dismiss=document.createElement("button");
-    dismiss.type="button";dismiss.textContent="Cerrar";
-    dismiss.style.cssText="padding:9px 12px;border-radius:7px;cursor:pointer;border:1px solid var(--border,#777);background:transparent;color:inherit";
-    dismiss.addEventListener("click",function(){box.remove()});
-    box.append(heading,para,downloadBtn,dismiss);document.body.appendChild(box);
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",offerLegacyBackup);else offerLegacyBackup();
-})();
-</script>
+
 
 </body></html>`);win.document.close();
 }
@@ -6194,7 +6329,7 @@ function initDebtBalanceReconciliation(){
  save();close();renderDebts();renderDashboard();renderCapital();renderPlan();
  });
 }
-bind();initDebtBalanceReconciliation();bindReportStudio();initV7();initR8();initMovements2();initGoalsBeta();initUiPreferences();initLiquidityChartInteraction();initModulesBeta();initDataIntegrityNotice();navigate(uiState.activeView||"dashboard");updateCurrencyHeader();setTimeout(()=>{if(oneShouldPromptFxOnLaunch())openFxDialog(true)},80);
+bind();initDebtBalanceReconciliation();bindReportStudio();initV7();initR8();initMovements2();initGoalsBeta();initUiPreferences();initLiquidityChartInteraction();initModulesBeta();initDataIntegrityNotice();initOneGlorianaMigrationNotice();navigate(uiState.activeView||"dashboard");updateCurrencyHeader();setTimeout(()=>{if(oneShouldPromptFxOnLaunch())openFxDialog(true)},80);
 </script>
 </body>
 </html>
