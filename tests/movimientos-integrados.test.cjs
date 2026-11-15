@@ -58,7 +58,7 @@ assert.equal(saved.reserveMovements[0].reserveId,"goal-test");
 assert.equal(saved.reserveMovements[0].type,"Aporte");
 assert.equal(saved.reserveMovements[0].amount,5000);
 assert.equal(saved.movements.length,0,"El ahorro no debe duplicar gasto ni ingreso en Movimientos");
-assert(root.getElementById("oneCentralFeedback").textContent.includes("transferencia interna"));
+assert(root.getElementById("oneCentralFeedback").textContent.includes("No se creó un gasto"));
 assert.equal(root.getElementById("movementComposerDialog").open,false,"Cerrar formulario tras guardar");
 assert.equal(w.getComputedStyle(root.querySelector(".one-goal-summary")).display,"grid","Los estilos reales de metas deben aplicarse");
 assert.equal(w.getComputedStyle(root.querySelector(".one-goal-grid")).display,"grid");
@@ -66,8 +66,10 @@ assert.equal(w.getComputedStyle(root.querySelector(".one-goal-grid")).display,"g
 // Captura de Cobro desde Movimientos reusa el formulario nativo y NO crea un ingreso.
 root.getElementById("toggleMovementComposer").click();
 root.querySelector('[data-one-action="cobro"]').click();
-assert.equal(root.getElementById("movementComposerDialog").open,false);
-assert.equal(root.getElementById("sharedChargeDialog").open,true,"Abrir formulario de Cobros: "+JSON.stringify(errors)+" / "+root.getElementById("movementComposerDialog").open+" / "+root.querySelector("[data-one-action=cobro]").hidden);
+assert.equal(root.getElementById("movementComposerDialog").open,true,"Cobros permanece en el mismo modal");
+assert.equal(root.getElementById("sharedChargeDialog").open,false,"No abrir otro diálogo");
+assert.equal(root.getElementById("sharedChargeForm").parentNode.id,"oneCentralCobroMount","Usar el formulario de Cobros dentro de Movimientos");
+assert.equal(root.querySelector('[data-one-action="goal"]').hidden,false,"Permitir cambiar a Metas desde Cobros");
 root.getElementById("scPerson").value="Ana";
 root.getElementById("scDescription").value="Cena";
 root.getElementById("scAmount").value="12000";
@@ -82,6 +84,8 @@ assert.equal(saved.sharedCharges[0].status,"pending");
 assert.equal(saved.movements.length,0,"El cargo no es un ingreso recibido");
 assert.equal(saved.reserveMovements.length,1,"El cobro no cambia el ahorro existente");
 assert(root.getElementById("oneCentralFeedback").textContent.includes("No se registró como ingreso"));
+assert.equal(root.getElementById("movementComposerDialog").open,false,"Cerrar tras guardar un cobro");
+assert(root.getElementById("sharedChargeDialog").contains(root.getElementById("sharedChargeForm")),"Restaurar formulario para uso normal de Cobros");
 assert.equal(root.getElementById("view-movements").classList.contains("active"),true,"Mantener la pantalla Movimientos al registrar el cobro");
 assert.deepEqual(errors,[],"La integración no debe producir errores ni alertas");
 
