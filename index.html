@@ -2262,6 +2262,10 @@ function makeQuarter(q){
 }
 function id(){return globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)+Date.now()}
 function clone(x){return JSON.parse(JSON.stringify(x))}
+const ONE_GLORIANA_LEGACY_KEY="gloriana_finanzas_local_v1";
+const ONE_GLORIANA_LEGACY_BACKUP_KEY="gloriana_one_less_one_legacy_backup_v131";
+const ONE_GLORIANA_TARGET_BACKUP_KEY="gloriana_one_less_one_before_legacy_import_v2";
+let oneGlorianaMigrationState={type:"none"};
 let data = load();
 
 function deriveBudgetMeta(p){
@@ -2519,10 +2523,6 @@ function migrateData(raw){
 }
 
 /* Migración automática Gloriana 1.3.1 -> one - one. Nunca elimina el origen. */
-const ONE_GLORIANA_LEGACY_KEY="gloriana_finanzas_local_v1";
-const ONE_GLORIANA_LEGACY_BACKUP_KEY="gloriana_one_less_one_legacy_backup_v131";
-const ONE_GLORIANA_TARGET_BACKUP_KEY="gloriana_one_less_one_before_legacy_import_v2";
-let oneGlorianaMigrationState={type:"none"};
 function oneGlorianaIsRecord(value){return value!==null&&typeof value==="object"&&!Array.isArray(value)}
 function oneGlorianaArray(value){return Array.isArray(value)?value:[]}
 function oneGlorianaSum(rows,selector){return rows.reduce((sum,row)=>sum+Number(selector(row)||0),0)}
@@ -2538,7 +2538,7 @@ function oneGlorianaHasNewFinancialData(raw){
   return false;
 }
 function oneGlorianaConvertLegacy(rawText){
-  if(rawText.length>RESTORE_MAX_BYTES)throw Error("El historial anterior excede el tamaño admitido para migración automática.");
+  if(rawText.length>25*1024*1024)throw Error("El historial anterior excede el tamaño admitido para migración automática.");
   const source=JSON.parse(rawText);
   if(!oneGlorianaIsRecord(source))throw Error("El historial anterior no es un objeto válido.");
   for(const key of ["periods","movements","debts"]){
