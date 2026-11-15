@@ -1,0 +1,13 @@
+{
+  "name": "one - one · Gloriana",
+  "short_name": "one - one",
+  "description": "Finanzas personales: ingresos menos gastos, decisiones con claridad.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#191919",
+  "theme_color": "#191919",
+  "lang": "es",
+  "icons": []
+}
