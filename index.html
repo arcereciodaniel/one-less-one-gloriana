@@ -2818,8 +2818,10 @@ function load(){
     }
     return migrateData(saved!==null?JSON.parse(saved):clone(initialData));
   }catch(e){
-    if(localStorage.getItem(ONE_GLORIANA_LEGACY_KEY)!==null)
-      oneGlorianaMigrationState={type:"error",reason:e.message};
+    try{
+      if(localStorage.getItem(ONE_GLORIANA_LEGACY_KEY)!==null)
+        oneGlorianaMigrationState={type:"error",reason:e.message};
+    }catch(ignore){}
     storageReadError=true;
     console.error("Error al leer o migrar datos locales; se bloquea el guardado.",e);
     return migrateData(clone(initialData));
