@@ -5453,9 +5453,10 @@ function bind(){
     const obj={...existing,id:cid||id(),...base,payments,snoozedUntil:existing?.snoozedUntil||"",sourceRecurringId,createdAt:existing?.createdAt||new Date().toISOString()};
     if(payments.length)syncCobroPaymentState(obj);
     const i=data.sharedCharges.findIndex(c=>c.id===cid);i>=0?data.sharedCharges[i]=obj:data.sharedCharges.push(obj);
+    const fromMovements=oneCentralCobroFromMovements;
+    oneCentralCobroFromMovements=false;
     save();document.getElementById("sharedChargeDialog").close();document.getElementById("sharedStatementMonth").value=chargeMonth;renderSharedCharges();
-    if(oneCentralCobroFromMovements){
-      oneCentralCobroFromMovements=false;
+    if(fromMovements){
       if(!oneModuleEnabled("shared"))oneSetModuleEnabled("shared",true);
       oneCentralNotify("Cobro de "+originalMoney(obj.amount,obj.currency)+" registrado para "+(obj.person||"la persona indicada")+". No se registró como ingreso; los pagos se controlan desde Cobros.");
       renderMovements();
