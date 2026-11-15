@@ -6,12 +6,17 @@ const html=fs.readFileSync("index.html","utf8");
 const script=html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
 assert(script,"No se encontró el script de la app");
 
-function boot(){
+function boot(initialData=null){
  const errors=[],vc=new VirtualConsole();
  vc.on("jsdomError",e=>errors.push(String(e.stack||e)));
  vc.on("error",e=>errors.push(String(e)));
  const dom=new JSDOM(html,{url:"https://example.com/",runScripts:"outside-only",pretendToBeVisual:true,virtualConsole:vc});
  const w=dom.window;
+ if(initialData){
+   const key=script.match(/const STORAGE_KEY = "([^"]+)"/)?.[1];
+   assert(key,"No se encontró la clave de almacenamiento");
+   w.localStorage.setItem(key,JSON.stringify(initialData));
+ }
  w.alert=()=>{};
  w.confirm=()=>true;
  w.prompt=()=>null;
@@ -61,3 +66,30 @@ const metas=w.document.querySelector('#nav [data-view="capital"]');
 metas.click();
 assert.equal(w.getComputedStyle(view).display,"block","Metas debe volver a abrir después de navegar");
 dom.window.close();
+
+const sampleGoalData={
+  version:6.2,categorySchemaVersion:1,incomeSchemaVersion:1,
+  settings:{fx:500,fxBuy:500,fxSell:500,displayCurrency:"CRC"},
+  periods:[{key:"2026-11-Q1",quarter:"2026-T4",n:1,budgetMonth:"2026-11",fortnight:1,
+    date:"2026-10-28",opening:null,income:0,otherIncome:0,budgets:{},categoryBudgets:{}}],
+  movements:[],reconciliations:[],debts:[],categories:[],
+  reserves:[{id:"test-meta",name:"Viaje de prueba",type:"goal",status:"active",target:100000,
+    targetCurrency:"CRC",openingAmount:20000,openingCurrency:"CRC",openingDate:"2026-11-01",
+    targetDate:"2027-12-31",location:"Banco",rate:0,notes:"Test sin datos reales"}],
+  reserveMovements:[]
+};
+const withGoal=boot(sampleGoalData);
+const g=withGoal.w;
+assert.equal(withGoal.errors.length,0,"El inicio con metas existentes no debe fallar");
+const goalToggle=g.document.getElementById("moduleGoalsToggle");
+goalToggle.checked=true;
+goalToggle.dispatchEvent(new g.Event("change",{bubbles:true}));
+g.document.querySelector('#nav [data-view="capital"]').click();
+const goalView=g.document.getElementById("view-capital");
+assert.equal(g.getComputedStyle(goalView).display,"block");
+assert.equal(g.document.querySelector("#goalCardGrid .one-goal-card h3")?.textContent,"Viaje de prueba");
+assert(g.document.getElementById("goalSummary").textContent.includes("20.000"),"Debe conservar el fondo existente");
+assert.equal(g.document.querySelector("#goalCardGrid .one-goal-card .one-goal-bar")!==null,true);
+console.log("OK: Metas vacías y con fondos existentes, modos claro/oscuro y navegación.");
+withGoal.dom.window.close();
+
