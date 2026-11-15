@@ -89,6 +89,41 @@ assert(root.getElementById("sharedChargeDialog").contains(root.getElementById("s
 assert.equal(root.getElementById("view-movements").classList.contains("active"),true,"Mantener la pantalla Movimientos al registrar el cobro");
 assert.deepEqual(errors,[],"La integración no debe producir errores ni alertas");
 
+const navGoal=root.querySelector("#nav [data-view=capital]");
+navGoal.click();
+assert.equal(w.getComputedStyle(root.getElementById("capitalLegacyDetails")).display,"none","No mostrar secciones heredadas de capital");
+assert(!root.getElementById("view-capital").textContent.includes("Capital protegido e historial completo"),"Ocultar el módulo de capital protegido");
+assert.equal(root.getElementById("goalCardGrid").querySelector(".one-goal-card h3")?.textContent,"Vacaciones");
+const fromGoal=root.querySelector('[data-goal-txn="goal-test"][data-goal-type="Aporte"]');
+assert(fromGoal,"Cada meta debe poder registrar un aporte");
+fromGoal.click();
+assert.equal(root.getElementById("movementComposerDialog").open,true,"La misma ventana de Movimientos debe funcionar dentro de Metas");
+assert.equal(root.getElementById("oneCentralGoalForm").hidden,false);
+assert.equal(root.getElementById("oneCentralGoalSelect").value,"goal-test");
+root.getElementById("oneCentralGoalTxnType").value="Retiro a operación";
+root.getElementById("oneCentralGoalTxnType").dispatchEvent(new w.Event("change",{bubbles:true}));
+assert.equal(root.getElementById("oneCentralGoalCategoryField").hidden,true,"Un retiro no ejecuta presupuesto de ahorro");
+root.getElementById("oneCentralGoalAmount").value="1000";
+root.getElementById("oneCentralGoalDate").value="2026-11-15";
+root.getElementById("oneCentralGoalForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+const afterWithdraw=read();
+assert.equal(afterWithdraw.reserveMovements.length,2);
+assert.equal(afterWithdraw.reserveMovements[1].type,"Retiro a operación");
+assert.equal(afterWithdraw.movements.length,0,"Ni el aporte ni el retiro generan ingresos/gastos ficticios");
+navGoal.click();
+root.querySelector("#nav [data-view=movements]").click();
+root.getElementById("toggleMovementComposer").click();
+root.querySelector('[data-one-action="cobro"]').click();
+root.querySelector('[data-one-action="goal"]').click();
+assert.equal(root.getElementById("oneCentralGoalForm").hidden,false,"Cambiar de Cobros a Metas sin cerrar la ventana");
+assert(root.getElementById("sharedChargeDialog").contains(root.getElementById("sharedChargeForm")),"Devolver formulario original al cambiar de tipo");
+root.querySelector('[data-m2-type="Gasto"]').click();
+assert.equal(root.getElementById("movementForm").hidden,false,"Cambiar de Metas a Gasto sin cerrar la ventana");
+assert.equal(root.getElementById("movementComposerDialog").open,true);
+root.getElementById("closeMovementComposer").click();
+assert.deepEqual(errors,[],"Metas y cambios de tipo no deben producir errores");
+
+
 // Sin metas: orientar a crear una antes de aportar, nunca guardar contra un fondo inexistente.
 run.dom.window.close();
 const noGoal=boot({...activeGoal,reserves:[]});
