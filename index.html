@@ -2302,7 +2302,7 @@ function normalizeIncomeConfig(cfg={}){
     expectedAmount:num(cfg.expectedAmount),expectedCurrency:normalizeCurrency(cfg.expectedCurrency||"CRC"),
     projectAutomatically:cfg.projectAutomatically===true&&frequency!=="irregular",
     account:ACCOUNTS.includes(cfg.account)?cfg.account:"Cuenta bancaria",
-    day1:clampDay(cfg.day1,14),day2:clampDay(cfg.day2,28),
+    day1:clampDay(cfg.day1,ONE_DEFAULT_PAY_DAYS.first),day2:clampDay(cfg.day2,ONE_DEFAULT_PAY_DAYS.second),
     assignment1:INCOME_ASSIGNMENTS.has(cfg.assignment1)?cfg.assignment1:"current-2",
     assignment2:INCOME_ASSIGNMENTS.has(cfg.assignment2)?cfg.assignment2:"next-1",
     monthlyDay:clampDay(cfg.monthlyDay,30),weekday:Math.max(0,Math.min(6,Math.round(num(cfg.weekday)||5))),
@@ -2323,7 +2323,7 @@ function defaultIncomeConfigForCategory(raw,c){
   const inferred=inferIncomeAmount(raw,c.id),name=String(c.name||"").toLocaleLowerCase("es");
   const isPrimary=c.id==="cat-income-daniel";
   const subtype=c.id==="cat-income-filtro"||name.includes("filtro")?"Negocio":c.id==="cat-income-freelance"||name.includes("freelance")?"Freelance":isPrimary?"Salario":"Otro";
-  return normalizeIncomeConfig({subtype,behavior:isPrimary?"fixed":"variable",frequency:isPrimary?"semimonthly":"irregular",expectedAmount:inferred.amount,expectedCurrency:inferred.currency,projectAutomatically:isPrimary&&inferred.amount>0,account:"Cuenta bancaria",day1:14,day2:28,assignment1:"current-2",assignment2:"next-1"});
+  return normalizeIncomeConfig({subtype,behavior:isPrimary?"fixed":"variable",frequency:isPrimary?"semimonthly":"irregular",expectedAmount:inferred.amount,expectedCurrency:inferred.currency,projectAutomatically:isPrimary&&inferred.amount>0,account:"Cuenta bancaria",day1:onePayDays(raw.settings).first,day2:onePayDays(raw.settings).second,assignment1:"current-2",assignment2:"next-1"});
 }
 function dateForMonthDay(year,monthIndex,day){const last=new Date(Date.UTC(year,monthIndex+1,0)).getUTCDate();return new Date(Date.UTC(year,monthIndex,Math.min(clampDay(day),last))).toISOString().slice(0,10)}
 function shiftMonth(monthKeyValue,delta){const [y,m]=String(monthKeyValue).split("-").map(Number),d=new Date(Date.UTC(y,m-1+delta,1));return d.toISOString().slice(0,7)}
