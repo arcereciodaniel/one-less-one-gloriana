@@ -1109,7 +1109,8 @@ html[data-theme="dark"]{
 
 /* Optional app modules · beta */
 #nav button[hidden],#dashboardDebtCommitmentsCard[hidden],#dashboardCollectionsCard[hidden]{display:none!important}
-#view-shared.active{display:block!important}
+/* Modulos opcionales: mostrar la vista activa pese al ocultamiento heredado */
+#view-shared.active,#view-capital.active{display:block!important}
 .v7-bottom-grid.one-single-column{grid-template-columns:1fr}
 .one-beta-tag{display:inline-block;margin-left:5px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:.61rem;font-weight:750;vertical-align:middle}
 /* El + es una acción de navegación discreta, no una tarjeta adicional. */
