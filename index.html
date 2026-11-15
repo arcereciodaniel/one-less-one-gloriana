@@ -2334,7 +2334,7 @@ function incomeOccurrencesForData(raw,c){
   const cfg=normalizeIncomeConfig(c?.incomeConfig||{}),result=new Map();
   if(!c||c.type!=="Ingreso"||c.active===false||c.budgetable===false||!cfg.projectAutomatically||cfg.expectedAmount<=0||cfg.frequency==="irregular")return result;
   const periods=[...(raw.periods||[])].sort((a,b)=>String(a.date).localeCompare(String(b.date)));if(!periods.length)return result;
-  const minDate=periods[0].date,maxDate=periodEndDate(periods.at(-1));
+  const minDate=periods[0].date,maxDate=periodEndDate(periods.at(-1),periods,raw.settings);
   const addOccurrence=(date,target=null)=>{if(!date||date<minDate||date>maxDate)return;const p=target||periodForDateIn(raw.periods,date);if(!p)return;const key=periodKey(p),cur=result.get(key)||{amount:0,currency:cfg.expectedCurrency,dates:[]};cur.amount+=cfg.expectedAmount;cur.dates.push(date);result.set(key,cur)};
   const min=new Date(minDate+"T00:00:00Z"),max=new Date(maxDate+"T00:00:00Z");
   if(cfg.frequency==="semimonthly"||cfg.frequency==="monthly"){
@@ -2357,7 +2357,7 @@ function syncIncomeProjectionsForData(raw,{categoryId="",adoptExisting=false}={}
     c.incomeConfig=normalizeIncomeConfig(c.incomeConfig||{});const cfg=c.incomeConfig,scheduled=incomeOccurrencesForData(raw,c);
     for(const p of raw.periods||[]){
       p.categoryBudgets=p.categoryBudgets||{};p.categoryBudgetCurrencies=p.categoryBudgetCurrencies||{};p.categoryBudgetSources=p.categoryBudgetSources&&typeof p.categoryBudgetSources==="object"?p.categoryBudgetSources:{};p.categoryBudgetScheduledDates=p.categoryBudgetScheduledDates&&typeof p.categoryBudgetScheduledDates==="object"?p.categoryBudgetScheduledDates:{};
-      if(periodEndDate(p)<today)continue;
+      if(periodEndDate(p,raw.periods,raw.settings)<today)continue;
       const key=periodKey(p),target=scheduled.get(key),hasSource=Object.prototype.hasOwnProperty.call(p.categoryBudgetSources,c.id),hasBudget=Object.prototype.hasOwnProperty.call(p.categoryBudgets,c.id),source=hasSource?p.categoryBudgetSources[c.id]:(hasBudget?"manual":"auto"),existing=num(p.categoryBudgets[c.id]),sameTarget=target&&Math.abs(existing-target.amount)<0.0001&&normalizeCurrency(p.categoryBudgetCurrencies[c.id]||cfg.expectedCurrency)===cfg.expectedCurrency;
       if(!cfg.projectAutomatically||c.active===false||c.budgetable===false){if(source==="auto"){p.categoryBudgets[c.id]=0;delete p.categoryBudgetSources[c.id];delete p.categoryBudgetScheduledDates[c.id]}continue}
       if(adoptExisting&&source==="manual"&&(existing===0||sameTarget)){p.categoryBudgetSources[c.id]="auto"}
@@ -3176,9 +3176,10 @@ function todayIso(){const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1
 function addDaysIso(date,days){
   const d=new Date(date+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)
 }
-function periodEndDate(p){
-  const next=(data.periods||[]).map(x=>x.date).filter(d=>d>p.date).sort()[0]||
-    (Number(p.fortnight)===1?canonicalPaymentDate(p.budgetMonth,2,data.settings):canonicalPaymentDate(oneMonthShift(p.budgetMonth,1),1,data.settings));
+function periodEndDate(p,periods=null,settings=null){
+  const rows=periods||data.periods,config=settings||data.settings;
+  const next=(rows||[]).map(x=>x.date).filter(d=>d>p.date).sort()[0]||
+    (Number(p.fortnight)===1?canonicalPaymentDate(p.budgetMonth,2,config):canonicalPaymentDate(oneMonthShift(p.budgetMonth,1),1,config));
   return oneShiftDate(next,-1);
 }
 function movementAmountCRC(m){
