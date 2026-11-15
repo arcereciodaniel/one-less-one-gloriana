@@ -1384,6 +1384,15 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 .one-central-feedback[hidden]{display:none!important}
 @media(max-width:520px){.one-move-dialog .m2-quick-types>button{font-size:.7rem;padding:9px 3px}.one-central-goal-form{grid-template-columns:1fr}}
 
+
+.one-payday-panel{margin:0 0 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:12px 15px}
+.one-payday-panel form{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:.76rem}
+.one-payday-panel form>div{margin-right:auto}
+.one-payday-panel strong{display:block;color:var(--text);font-size:.82rem}
+.one-payday-panel small{display:block;color:var(--muted);margin-top:3px}
+.one-payday-panel label{display:flex;align-items:center;gap:5px;color:var(--muted)}
+.one-payday-panel input{max-width:65px;min-height:32px;border:1px solid var(--border);border-radius:6px;color:var(--text);background:var(--surface);padding:4px 6px}
+
 </style>
 </head>
 <body>
@@ -1594,6 +1603,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
     </details>
     <div id="planQuarterSummary" class="plan-quarter-summary"></div>
     <section id="goalBudgetPreview" class="one-goal-context" hidden aria-label="Orientación de ahorro para metas"></section>
+    <div class="one-payday-panel"><form id="onePaydayForm"><div><strong>Días de salario</strong><small>La quincena va desde cada pago hasta el siguiente.</small></div><label>Primer pago<input id="onePaydayFirst" type="number" min="1" max="27" required></label><label>Segundo pago<input id="onePaydaySecond" type="number" min="2" max="31" required></label><button type="submit" class="btn secondary small">Aplicar</button></form></div>
     <div id="planMonths" class="plan-months"></div>
     <div class="v7-legacy-hidden" aria-hidden="true">
       <strong id="planClosingTitle">Cierre del periodo</strong>
@@ -2338,6 +2348,26 @@ const initialData = {
   debts:[]
 };
 
+/* Calendario de salario configurable: la siguiente fecha de pago cierra el ciclo anterior. */
+const ONE_DEFAULT_PAY_DAYS={first:15,second:30};
+function onePayDays(settings=null){
+  const x=settings?.payDays||ONE_DEFAULT_PAY_DAYS,first=Number(x.first)||ONE_DEFAULT_PAY_DAYS.first,second=Number(x.second)||ONE_DEFAULT_PAY_DAYS.second;
+  return first>=1&&first<=27&&second>first&&second<=31?{first,second}:{...ONE_DEFAULT_PAY_DAYS};
+}
+function oneMonthShift(month,offset){
+  const [y,m]=month.split("-").map(Number);
+  return new Date(Date.UTC(y,m-1+offset,1)).toISOString().slice(0,7);
+}
+function oneDateMonthDay(month,day){
+  const [y,m]=month.split("-").map(Number),last=new Date(Date.UTC(y,m,0)).getUTCDate();
+  return month+"-"+String(Math.min(last,day)).padStart(2,"0");
+}
+function oneShiftDate(date,delta){return new Date(Date.parse(date+"T00:00:00Z")+delta*86400000).toISOString().slice(0,10)}
+function oneUpdatePaydayPeriods(fromMonth){
+  for(const p of data.periods){
+    if(p.budgetMonth>=fromMonth)p.date=canonicalPaymentDate(p.budgetMonth,p.fortnight,data.settings);
+  }
+}
 function makeQuarter(q){
   const match=/^(\d{4})-T([1-4])$/.exec(q);
   if(!match)return [];
@@ -2346,8 +2376,8 @@ function makeQuarter(q){
   for(let offset=0;offset<3;offset++){
     const month=startMonth+offset;
     const budgetMonth=`${year}-${String(month).padStart(2,"0")}`;
-    const q1Date=new Date(Date.UTC(year,month-2,28)).toISOString().slice(0,10);
-    const q2Date=new Date(Date.UTC(year,month-1,14)).toISOString().slice(0,10);
+    const q1Date=canonicalPaymentDate(budgetMonth,1);
+    const q2Date=canonicalPaymentDate(budgetMonth,2);
     rows.push({key:`${budgetMonth}-Q1`,quarter:q,n:n++,budgetMonth,fortnight:1,date:q1Date,opening:null,openingCurrency:"CRC",income:0,incomeCurrency:"CRC",otherIncome:0,otherIncomeCurrency:"CRC",budgets:{},budgetCurrencies:{},categoryBudgets:{},categoryBudgetCurrencies:{}});
     rows.push({key:`${budgetMonth}-Q2`,quarter:q,n:n++,budgetMonth,fortnight:2,date:q2Date,opening:null,openingCurrency:"CRC",income:0,incomeCurrency:"CRC",otherIncome:0,otherIncomeCurrency:"CRC",budgets:{},budgetCurrencies:{},categoryBudgets:{},categoryBudgetCurrencies:{}});
   }
@@ -2378,10 +2408,9 @@ function budgetQuarterFromMonth(month){
   const [year,m]=month.split("-").map(Number);
   return `${year}-T${Math.floor((m-1)/3)+1}`;
 }
-function canonicalPaymentDate(budgetMonth,fortnight){
-  const [year,month]=budgetMonth.split("-").map(Number);
-  const d=Number(fortnight)===1?new Date(Date.UTC(year,month-2,28)):new Date(Date.UTC(year,month-1,14));
-  return d.toISOString().slice(0,10);
+function canonicalPaymentDate(budgetMonth,fortnight,settings=null){
+  const d=onePayDays(settings);
+  return Number(fortnight)===1?oneDateMonthDay(oneMonthShift(budgetMonth,-1),d.second):oneDateMonthDay(budgetMonth,d.first);
 }
 function migrateData(raw){
   raw=raw&&typeof raw==="object"?raw:clone(initialData);
@@ -2394,6 +2423,7 @@ function migrateData(raw){
   raw.settings.fxDate=raw.settings.fxDate||"";
   raw.settings.fxHistory=Array.isArray(raw.settings.fxHistory)?raw.settings.fxHistory.filter(x=>x&&x.date).map(x=>({date:x.date,buy:num(x.buy),sell:num(x.sell)})):[];
   raw.settings.displayCurrency=normalizeCurrency(raw.settings.displayCurrency||"CRC");
+  raw.settings.payDays=onePayDays(raw.settings);
   raw.periods=Array.isArray(raw.periods)?raw.periods:[];
   raw.movements=Array.isArray(raw.movements)?raw.movements:[];
   raw.movementTemplates=Array.isArray(raw.movementTemplates)?raw.movementTemplates:[];
@@ -2449,7 +2479,9 @@ function migrateData(raw){
     p.key=p.key||`${p.quarter||budgetQuarterFromMonth(meta.budgetMonth)}-${p.n||index+1}`;
     p.quarter=budgetQuarterFromMonth(p.budgetMonth);
     // No sobreescribir fechas personalizadas válidas al recargar un presupuesto.
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(p.date||"")))p.date=canonicalPaymentDate(p.budgetMonth,p.fortnight);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(p.date||"")))p.date=canonicalPaymentDate(p.budgetMonth,p.fortnight,raw.settings);
+    // Corregir la ventana vigente y futura de Gloriana a 15 y 30 sin tocar períodos históricos previos.
+    if(p.budgetMonth>=todayIso().slice(0,7))p.date=canonicalPaymentDate(p.budgetMonth,p.fortnight,raw.settings);
     p.budgets=p.budgets||{};
     p.budgetCurrencies=p.budgetCurrencies&&typeof p.budgetCurrencies==="object"?p.budgetCurrencies:{};
     p.categoryBudgets=p.categoryBudgets&&typeof p.categoryBudgets==="object"?p.categoryBudgets:{};
@@ -3105,8 +3137,9 @@ function addDaysIso(date,days){
   const d=new Date(date+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)
 }
 function periodEndDate(p){
-  if(p.fortnight===1)return `${p.budgetMonth}-13`;
-  return `${p.budgetMonth}-27`;
+  const next=(data.periods||[]).map(x=>x.date).filter(d=>d>p.date).sort()[0]||
+    (Number(p.fortnight)===1?canonicalPaymentDate(p.budgetMonth,2,data.settings):canonicalPaymentDate(oneMonthShift(p.budgetMonth,1),1,data.settings));
+  return oneShiftDate(next,-1);
 }
 function movementAmountCRC(m){
   const intent=m.type==="Ingreso"||oneIsCobroReimbursement(m)?"receive":(m.type==="Gasto"||m.type==="Pago deuda")?"pay":"neutral";
@@ -3711,7 +3744,7 @@ function renderPlan(){
       return `<article class="r8-fortnight-card ${current?"current":""}">
         <div class="r8-card-main">
           <div class="r8-fortnight-heading"><h3>${r.fortnight===1?"1.ª quincena":"2.ª quincena"}</h3><span class="r8-chip${statusClass}">${status}</span></div>
-          <div class="r8-card-dates">${dateLabel(r.date)} – ${dateLabel(end)}</div>
+          <div class="r8-card-dates">${dateLabel(r.date)} → ${dateLabel(oneShiftDate(end,1))}</div>
           <div class="r8-card-closing-label">Cierre proyectado</div>
           <div class="r8-card-closing ${tone}">${money(r.ending)}</div>
           ${r8BudgetSection("Ingreso","Ingresos",r)}
@@ -6303,7 +6336,22 @@ function oneCentralSaveGoal(event){
   oneCentralNotify("Aporte de "+originalMoney(amount,candidate.currency)+" guardado en la meta “"+fund.name+"”. Es una transferencia interna, no un gasto.");
 }
 
+function oneInitPaydayControls(){
+  const form=document.getElementById("onePaydayForm");if(!form)return;
+  const first=document.getElementById("onePaydayFirst"),second=document.getElementById("onePaydaySecond");
+  const sync=()=>{const d=onePayDays(data.settings);first.value=d.first;second.value=d.second};
+  sync();
+  form.addEventListener("submit",e=>{
+    e.preventDefault();
+    const a=Number(first.value),b=Number(second.value);
+    if(!Number.isInteger(a)||!Number.isInteger(b)||a<1||a>27||b<=a||b>31)return alert("Ingresá dos días válidos; el segundo debe ser posterior al primero.");
+    if(!confirm("¿Aplicar las fechas de salario desde el mes actual? Los movimientos, montos y meses anteriores no se eliminan."))return;
+    data.settings.payDays={first:a,second:b};oneUpdatePaydayPeriods(todayIso().slice(0,7));
+    save();syncQuarterSelectors();m2SyncMovementPeriod();renderPlan();renderMovements();renderDashboard();sync();
+  });
+}
 function initMovements2(){
+  oneInitPaydayControls();
   const form=document.getElementById("movementForm"),composer=document.getElementById("movementComposer");
   m2ResetComposer(true);
   document.getElementById("movementLevel").value="month";
