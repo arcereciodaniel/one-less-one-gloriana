@@ -5562,7 +5562,7 @@ function bind(){
     const i=data.sharedCharges.findIndex(c=>c.id===cid);i>=0?data.sharedCharges[i]=obj:data.sharedCharges.push(obj);
     const fromMovements=oneCentralCobroFromMovements;
     oneCentralCobroFromMovements=false;
-    save();document.getElementById("sharedChargeDialog").close();document.getElementById("sharedStatementMonth").value=chargeMonth;renderSharedCharges();
+    save();const chargeDialog=document.getElementById("sharedChargeDialog");if(chargeDialog?.open)chargeDialog.close();document.getElementById("sharedStatementMonth").value=chargeMonth;renderSharedCharges();
     if(fromMovements){
       m2ResetComposer();
       if(!oneModuleEnabled("shared"))oneSetModuleEnabled("shared",true);
