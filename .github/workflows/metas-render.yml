@@ -5,6 +5,7 @@ on:
       - index.html
       - tests/metas-render.test.cjs
       - tests/movimientos-integrados.test.cjs
+      - tests/quincenas-metas-presupuesto.test.cjs
       - .github/workflows/metas-render.yml
   workflow_dispatch:
 jobs:
@@ -18,3 +19,4 @@ jobs:
       - run: npm install jsdom@26 --no-save --no-package-lock
       - run: node tests/metas-render.test.cjs
       - run: node tests/movimientos-integrados.test.cjs
+      - run: node tests/quincenas-metas-presupuesto.test.cjs
