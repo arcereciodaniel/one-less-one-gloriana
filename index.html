@@ -1845,16 +1845,16 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
     <section class="one-goal-activity"><div class="one-goal-activity-head"><h2>Actividad reciente</h2><span>Aportes y retiros</span></div><div id="oneGoalActivityList"></div></section>
     <p class="one-goal-disclaimer">Ahorrá desde Movimientos o desde cada meta. El aporte reduce el saldo operativo, sin contarse como un gasto.</p>
     <div id="capitalLegacyDetails" hidden aria-hidden="true" style="display:none!important">
-      <summary>Capital protegido e historial completo de fondos</summary>
+      <summary>Controles históricos internos (no visibles)</summary>
       <div class="one-goal-advanced-body">
-        <p class="one-goal-disclaimer">Administrá fondos protegidos, rendimientos, ajustes y operaciones históricas desde esta sección.</p>
+        <p class="one-goal-disclaimer">Datos anteriores preservados para recuperación, sin mostrarse en la interfaz.</p>
 
     <div class="toolbar">
       <button class="btn" id="addReserveBtn">Agregar fondo</button>
       <div><label>Mostrar</label><select id="reserveStatusFilter"><option value="active">Fondos activos</option><option value="archived">Archivados</option><option value="all">Todos</option></select></div>
     </div>
     <div class="grid kpis" id="capitalKpis"></div>
-    <div class="note" style="margin-top:16px"><strong>Regla:</strong> un aporte a una meta reduce tu saldo operativo disponible, pero no reduce tu patrimonio. Un movimiento de capital protegido tampoco se considera ingreso ordinario.</div>
+    <div class="note" style="margin-top:16px"><strong>Regla:</strong> un aporte a una meta reduce tu saldo operativo disponible, pero no reduce tu patrimonio. No se agrega ningún gasto ni ingreso duplicado.</div>
     <div class="card table-card" style="margin-bottom:16px">
       <div class="table-head"><strong>Fondos y capital</strong><span class="pill" id="reserveTotal"></span></div>
       <div class="table-wrap"><table id="reserveTable"></table></div>
@@ -4580,21 +4580,8 @@ function initGoalsBeta(){
 }
 
 function renderCapital(){
+  // Vista moderna: solo metas. Fondos antiguos quedan en el respaldo y en los cálculos históricos.
   oneRenderGoalCards();
-  const today=todayIso(), totals=reserveTotals(today), operating=actualBalanceAt(today), debtTotal=activeDebtTotal();
-  const liquid=operating+totals.total, net=liquid-debtTotal;
-  const cards=[["Saldo operativo",operating,operating>=0?"good":"bad"],["Capital protegido",totals.protectedTotal,""],["Metas reservadas",totals.goalTotal,""],["Patrimonio líquido",liquid,"good"],["Deuda estimada",debtTotal,"warn"],["Posición líquida neta",net,net>=0?"good":"bad"]];
-  document.getElementById("capitalKpis").innerHTML=cards.map(([l,v,c])=>`<div class="card kpi ${c}"><div class="label">${l}</div><div class="value">${money(v)}</div></div>`).join("");
-  document.getElementById("reserveTotal").textContent=`Total reservado: ${money(totals.total)}`;
-  const reserveView=document.getElementById("reserveStatusFilter")?.value||"active";
-  const visibleReserves=data.reserves.filter(r=>reserveView==="all"||reserveStatus(r)===reserveView);
-  document.getElementById("reserveTable").innerHTML=`<thead><tr><th>Fondo</th><th>Estado</th><th>Tipo</th><th>Ubicación</th><th>Saldo</th><th>Meta</th><th>Avance</th><th>Tasa</th><th>Notas</th><th></th></tr></thead><tbody>${visibleReserves.length?visibleReserves.map(r=>{
-    const bal=reserveBalanceAt(r,today),target=reserveTargetCRC(r),progress=target?bal/target:0,status=reserveStatus(r);
-    const archiveAction=r.type==="goal"?(status==="active"?`<button class="btn secondary small" data-archive-reserve="${r.id}">Archivar</button>`:`<button class="btn secondary small" data-reactivate-reserve="${r.id}">Reactivar</button>`):"";
-    return `<tr><td><strong>${r.name}</strong>${status==="archived"&&r.closedReason?`<br><small class="muted">${r.closedReason}${r.closedAt?` · ${dateLabel(r.closedAt)}`:""}</small>`:""}</td><td><span class="status-badge ${status}">${status==="active"?"Activo":"Archivado"}</span></td><td><span class="reserve-tag ${r.type}">${reserveLabel(r)}</span></td><td>${r.location||"—"}</td><td class="num">${money(bal)}${originalHint(r.openingAmount,r.openingCurrency)}</td><td class="num">${target?`${money(target)}${originalHint(r.target,r.targetCurrency)}`:"—"}</td><td>${target?`<div class="progress"><span style="width:${Math.min(100,progress*100)}%"></span></div><small>${(progress*100).toFixed(0)}%</small>`:"—"}</td><td class="center">${num(r.rate)?`${num(r.rate).toFixed(2)}%`:"—"}</td><td>${r.notes||""}</td><td><div class="actions"><button class="btn secondary small" data-edit-reserve="${r.id}">Editar</button>${archiveAction}</div></td></tr>`;
-  }).join(""):`<tr><td colspan="10" class="empty">No hay fondos en esta vista.</td></tr>`}</tbody>`;
-  const tx=[...(data.reserveMovements||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,25);
-  document.getElementById("reserveTxnTable").innerHTML=`<thead><tr><th>Fecha</th><th>Fondo</th><th>Tipo</th><th>Descripción</th><th>Monto</th><th></th></tr></thead><tbody>${tx.length?tx.map(t=>`<tr><td>${dateLabel(t.date)}</td><td>${data.reserves.find(r=>r.id===t.reserveId)?.name||""}</td><td><span class="pill">${t.type}</span></td><td>${t.description||""}</td><td class="num">${money(reserveTxnCurrentValueCRC(t))}${originalHint(t.amount,t.currency)}</td><td><button class="btn danger small" data-delete-reserve-txn="${t.id}">Eliminar</button></td></tr>`).join(""):`<tr><td colspan="6" class="empty">Sin movimientos de fondos todavía.</td></tr>`}</tbody>`;
   refreshReserveSelect();
 }
 
