@@ -1413,6 +1413,19 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 .one-goal-activity-empty{font-size:.76rem;color:var(--muted);margin:9px 0 0}
 #capitalLegacyDetails[hidden]{display:none!important}
 
+
+/* Selector de cinco operaciones en la misma ventana y estilo discreto en ambos temas. */
+.one-move-dialog .m2-quick-types{display:flex!important;grid-template-columns:none!important;gap:5px;flex-wrap:nowrap;overflow-x:auto;padding:0 0 11px;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;margin:0 0 18px;scrollbar-width:thin}
+.one-move-dialog .m2-quick-types button,.one-move-dialog .m2-quick-types>button[data-one-action]{display:inline-flex;flex:0 0 auto;min-width:0;grid-column:auto;white-space:nowrap;align-items:center;justify-content:center;background:transparent;color:var(--muted);border:1px solid transparent;border-radius:7px;padding:9px 11px;min-height:36px;font-size:.73rem;line-height:1.3}
+.one-move-dialog .m2-quick-types button.active,.one-move-dialog .m2-quick-types>button[data-one-action].active{color:var(--text);background:var(--surface-2);border-color:var(--border);box-shadow:none}
+.one-move-dialog .m2-quick-types button:hover{color:var(--text)}
+.one-move-dialog{max-height:90vh;overflow-y:auto}
+.one-central-cobro-mount[hidden]{display:none!important}
+.one-central-cobro-mount .form-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.one-central-cobro-mount .form-grid .field.wide,.one-central-cobro-mount .form-grid .dialog-actions{grid-column:1/-1}
+.one-central-cobro-mount .form-grid input,.one-central-cobro-mount .form-grid select{max-width:100%}
+@media(max-width:550px){.one-move-dialog .m2-quick-types button{font-size:.7rem;padding:8px 9px}.one-central-cobro-mount .form-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -1727,7 +1740,9 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
           <div class="field wide"><label for="oneCentralGoalDescription">Descripción (opcional)</label><input id="oneCentralGoalDescription" placeholder="Ej. Aporte quincenal"></div>
           <div class="form-actions"><button class="btn" id="oneCentralGoalSubmit" type="submit">Registrar ahorro para meta</button></div>
         </form>
-
+        <div id="oneCentralCobroMount" class="one-central-cobro-mount" hidden>
+          <p class="one-central-goal-hint">El cobro pendiente no se cuenta como ingreso. Sus abonos se controlan desde Cobros.</p>
+        </div>
       </div>
     </dialog>
   </section>
@@ -4087,7 +4102,7 @@ function deleteSharedGroup(group){
   data.sharedChargeGroups=(data.sharedChargeGroups||[]).filter(g=>g.id!==group.id);
   sharedSelectedChargeIds.clear();save();refreshSharedGroupSelects();renderSharedCharges();
 }
-function openSharedCharge(c=null,preferredGroupId=""){
+function openSharedCharge(c=null,preferredGroupId="",options={}){
   document.getElementById("sharedChargeDialogTitle").textContent=c?"Editar cobro":"Agregar cobro";
   if(!c&&preferredGroupId){const g=sharedGroupById(preferredGroupId);if(g&&sharedGroupStatus(g)==="archived")return alert("Ese grupo está archivado. Reactívalo para agregar nuevos cobros.");}
   const preferred=c?.groupId||preferredGroupId||"";refreshSharedGroupSelects(preferred);
@@ -4106,7 +4121,7 @@ function openSharedCharge(c=null,preferredGroupId=""){
   document.getElementById("scStatus").value=c?.status||"pending";
   document.getElementById("scRecurring").checked=recurring;
   document.getElementById("scNotes").value=c?.notes||"";
-  document.getElementById("sharedChargeDialog").showModal();
+  if(!options.inline)document.getElementById("sharedChargeDialog").showModal();
 }
 
 /* Ledger de abonos en la moneda original del cobro. Historial previo respetado. */
@@ -5546,6 +5561,7 @@ function bind(){
     oneCentralCobroFromMovements=false;
     save();document.getElementById("sharedChargeDialog").close();document.getElementById("sharedStatementMonth").value=chargeMonth;renderSharedCharges();
     if(fromMovements){
+      m2ResetComposer();
       if(!oneModuleEnabled("shared"))oneSetModuleEnabled("shared",true);
       oneCentralNotify("Cobro de "+originalMoney(obj.amount,obj.currency)+" registrado para "+(obj.person||"la persona indicada")+". No se registró como ingreso; los pagos se controlan desde Cobros.");
       renderMovements();
@@ -6328,7 +6344,14 @@ function oneCentralNotify(message){
   note.textContent=String(message||"");
   note.hidden=!message;
 }
+function oneCentralRestoreCobroForm(){
+  const form=document.getElementById("sharedChargeForm");
+  if(form?.parentNode?.id==="oneCentralCobroMount")document.querySelector("#sharedChargeDialog .dialog-body").appendChild(form);
+  const mount=document.getElementById("oneCentralCobroMount");if(mount)mount.hidden=true;
+  oneCentralCobroFromMovements=false;
+}
 function oneCentralRestoreMovementForm(){
+  oneCentralRestoreCobroForm();
   document.getElementById("oneCentralGoalForm").hidden=true;
   document.getElementById("movementForm").hidden=false;
   document.querySelectorAll("[data-one-action]").forEach(b=>{b.classList.remove("active");b.setAttribute("aria-pressed","false")});
@@ -6365,9 +6388,19 @@ function oneCentralOpenGoal(){
 }
 function oneCentralOpenCobro(){
   if(document.getElementById("mEditId")?.value||document.getElementById("mScheduledId")?.value)return;
-  m2ResetComposer();
+  oneCentralRestoreCobroForm();
+  openSharedCharge(null,"",{inline:true});
+  document.getElementById("oneCentralGoalForm").hidden=true;
+  document.getElementById("movementForm").hidden=true;
+  document.getElementById("movementSplitToggle").hidden=true;
+  const mount=document.getElementById("oneCentralCobroMount");
+  mount.hidden=false;mount.appendChild(document.getElementById("sharedChargeForm"));
+  document.getElementById("movementComposerTitle").textContent="Registrar cobro";
   oneCentralCobroFromMovements=true;
-  try{openSharedCharge()}catch(error){oneCentralCobroFromMovements=false;throw error;}
+  document.querySelectorAll("[data-m2-type],[data-one-action]").forEach(b=>{
+    const active=b.dataset.oneAction==="cobro";b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
+  });
+  document.getElementById("scPerson").focus({preventScroll:true});
 }
 function oneCentralSaveGoal(event){
   event.preventDefault();
@@ -6410,6 +6443,7 @@ function oneInitPaydayControls(){
 function initMovements2(){
   oneInitPaydayControls();
   const form=document.getElementById("movementForm"),composer=document.getElementById("movementComposer");
+  document.body.appendChild(document.getElementById("movementComposerDialog"));
   m2ResetComposer(true);
   document.getElementById("movementLevel").value="month";
   m2SyncMovementPeriod(true);
@@ -6422,7 +6456,7 @@ function initMovements2(){
   dialog?.addEventListener("click",e=>{if(e.target===dialog)m2ResetComposer()});
   document.getElementById("movementCancelEdit")?.addEventListener("click",()=>m2ResetComposer());
   document.querySelectorAll("[data-m2-type]").forEach(btn=>btn.addEventListener("click",()=>{
-    if(!document.getElementById("oneCentralGoalForm").hidden)oneCentralRestoreMovementForm();
+    if(!document.getElementById("oneCentralGoalForm").hidden||!document.getElementById("oneCentralCobroMount").hidden)oneCentralRestoreMovementForm();
     document.getElementById("mType").value=btn.dataset.m2Type;
     document.getElementById("mType").dispatchEvent(new Event("change",{bubbles:true}));
   }));
