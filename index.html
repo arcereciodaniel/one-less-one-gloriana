@@ -1426,6 +1426,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 .one-central-cobro-mount .form-grid input,.one-central-cobro-mount .form-grid select{max-width:100%}
 @media(max-width:550px){.one-move-dialog .m2-quick-types button{font-size:.7rem;padding:8px 9px}.one-central-cobro-mount .form-grid{grid-template-columns:1fr}}
 
+.one-saving-category-label{display:block;font-size:.69rem;color:var(--muted);margin-top:3px}
 </style>
 </head>
 <body>
@@ -1488,18 +1489,18 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 
     <div class="one-dashboard-analytics-grid">
       <section class="v7-card v7-chart-card one-dashboard-budget-chart" aria-labelledby="oneBudgetChartTitle">
-<div class="v7-card-head"><div><h2 id="oneBudgetChartTitle">Presupuesto vs. real</h2><p>Comparación de egresos del periodo seleccionado.</p></div></div>
+<div class="v7-card-head"><div><h2 id="oneBudgetChartTitle">Presupuesto vs. real</h2><p>Gastos y aportes a metas comparados con lo presupuestado.</p></div></div>
           <div class="one-chart-legend" id="expenseChartLegend" aria-label="Leyenda del gráfico de presupuesto frente a real">
             <span class="one-chart-legend-item"><span class="one-chart-swatch one-chart-budget" aria-hidden="true"></span><strong>Presupuesto</strong></span>
             <span class="one-chart-legend-item"><span class="one-chart-swatch one-chart-real" aria-hidden="true"></span><strong>Real</strong></span>
           </div>
           <div class="one-dashboard-bar-plot">
-            <canvas id="expenseChart" aria-label="Comparación de egresos: barra izquierda presupuesto, barra derecha gasto real" aria-describedby="expenseChartLegend"></canvas>
+            <canvas id="expenseChart" aria-label="Salidas presupuestadas y reales, incluidos los ahorros transferidos a metas" aria-describedby="expenseChartLegend"></canvas>
           </div>
       </section>
 <section class="v7-card rastro-category-spotlight one-dashboard-category-card" aria-labelledby="dashboardCategoryTitle">
       <div class="v7-card-head">
-        <div><h2 id="dashboardCategoryTitle">Estado por categoría</h2><p>Presupuesto, gasto real y disponibilidad.</p></div>
+        <div><h2 id="dashboardCategoryTitle">Estado por categoría</h2><p>Presupuesto, gastos y ahorros registrados, y disponibilidad.</p></div>
       </div>
       <div class="rastro-category-spotlight-filters">
         <div class="toolbar">
@@ -3619,7 +3620,7 @@ function updateReconcilePreview(){
 }
 function categoryTable(rows){
   return `<table><thead><tr><th>Categoría</th><th>Presupuesto</th><th>Real</th><th>Disponible</th><th>Uso</th></tr></thead><tbody>${
-    rows.length?rows.map(r=>`<tr><td>${safe(r.category)}</td><td class="num">${money(r.budget)}</td><td class="num">${money(r.actual)}</td><td class="num ${r.variance<0?"negative":"positive"}">${money(r.variance)}</td><td><div class="progress"><span style="width:${Math.min(100,r.used*100)}%"></span></div><small>${(r.used*100).toFixed(0)}%</small></td></tr>`).join(""):`<tr><td colspan="5" class="empty">No hay categorías presupuestadas ni egresos reales en este período.</td></tr>`
+    rows.length?rows.map(r=>`<tr><td>${safe(r.category)}${r.includesSavings?`<small class="one-saving-category-label">Incluye transferencias a metas</small>`:""}</td><td class="num">${money(r.budget)}</td><td class="num">${money(r.actual)}</td><td class="num ${r.variance<0?"negative":"positive"}">${money(r.variance)}</td><td><div class="progress"><span style="width:${Math.min(100,r.used*100)}%"></span></div><small>${(r.used*100).toFixed(0)}%</small></td></tr>`).join(""):`<tr><td colspan="5" class="empty">No hay categorías presupuestadas ni egresos reales en este período.</td></tr>`
   }</tbody></table>`
 }
 
@@ -3805,7 +3806,7 @@ function renderPlan(){
           <div class="r8-card-closing-label">Cierre proyectado</div>
           <div class="r8-card-closing ${tone}">${money(r.ending)}</div>
           ${r8BudgetSection("Ingreso","Ingresos",r)}
-          ${r8BudgetSection(["Gasto","Pago deuda"],"Gastos y compromisos",r)}
+          ${r8BudgetSection(["Gasto","Pago deuda"],"Gastos, deudas y ahorro",r)}
         </div>
         <div class="r8-card-footer">
           <button type="button" data-r8-add-category="${key}" title="Crear una categoría presupuestable">+ Agregar categoría</button>
@@ -4438,6 +4439,11 @@ function oneSuggestedSavingsCategoryId(){
   return oneSavingsCategories().find(c=>/(ahorro|inversi[oó]n|meta)/i.test(c.name||""))?.id||"";
 }
 function oneGoalBudgetCategory(r){return r?.budgetCategoryId||oneSuggestedSavingsCategoryId()}
+function oneSavingsBudgetPlanned(rows){
+  const linked=new Set((data.reserves||[]).filter(r=>r.type==="goal").map(oneGoalBudgetCategory).filter(Boolean));
+  const suggested=oneSuggestedSavingsCategoryId();if(suggested)linked.add(suggested);
+  return rows.reduce((sum,p)=>sum+[...linked].reduce((acc,cid)=>acc+periodCategoryBudgetCRC(p,cid,"pay"),0),0);
+}
 function oneContributionCategory(t){
   return t.budgetCategoryId||oneGoalBudgetCategory((data.reserves||[]).find(r=>r.id===t.reserveId));
 }
@@ -6081,7 +6087,8 @@ renderDashboard=function(){
     hist.length===1?`Saldo operativo de hoy: ${money(hist[0].balance)} · historial en formación`:
     "Aún no hay saldos operativos reales registrados";
 
-  const usage=summary.plannedExpense?summary.realExpense/summary.plannedExpense:null;
+  const spendPlan=Math.max(0,summary.plannedExpense-oneSavingsBudgetPlanned(summary.rows));
+  const usage=spendPlan?summary.realExpense/spendPlan:null;
   const insight=document.getElementById("dashboardInsight");
   if(usage===null){
     insight.innerHTML=`<div class="v7-insight-icon">↗</div><h3>Tu lectura está lista para crecer</h3><p>Definí presupuesto y registrá movimientos reales para que one - one pueda comparar ritmo, desviaciones y proyección.</p><span class="v7-status-pill">○ Faltan datos reales</span>`;
@@ -6090,7 +6097,7 @@ renderDashboard=function(){
   }else if(usage<=1){
     insight.innerHTML=`<div class="v7-insight-icon">◔</div><h3>Estás cerca del límite planeado</h3><p>Has utilizado ${(usage*100).toFixed(0)}% del presupuesto. Vale la pena cuidar los gastos discrecionales del resto del periodo.</p><span class="v7-status-pill">○ Revisar ritmo</span>`;
   }else{
-    insight.innerHTML=`<div class="v7-insight-icon">!</div><h3>El gasto superó el plan</h3><p>Los egresos reales están ${money(summary.realExpense-summary.plannedExpense)} por encima del presupuesto seleccionado.</p><span class="v7-status-pill">○ Requiere atención</span>`;
+    insight.innerHTML=`<div class="v7-insight-icon">!</div><h3>El gasto superó el plan</h3><p>Los gastos reales están ${money(summary.realExpense-spendPlan)} por encima del presupuesto de gastos, sin contar el ahorro apartado.</p><span class="v7-status-pill">○ Requiere atención</span>`;
   }
 
   const debts=activeDebts().map(d=>({...d,nextDate:v7NextPayDate(d)})).filter(d=>d.nextDate).sort((a,b)=>a.nextDate.localeCompare(b.nextDate)).slice(0,3);
