@@ -1306,6 +1306,84 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 .one-restore-preview p{overflow-wrap:anywhere;font-size:.85rem}
 .one-restore-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .one-restore-counts>div{padding:8px;border-radius:6px;background:var(--surface-hover);display:flex;justify-content:space-between;gap:12px;font-size:.79rem}
+/* Metas Beta 1.0 · identical structure in light/dark, theme tokens only. */
+.one-goal-header{display:flex;align-items:end;justify-content:space-between;gap:12px}
+.one-goal-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 19px}
+.one-goal-total{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
+.one-goal-total span,.one-goal-eyebrow{display:block;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:.075em}
+.one-goal-total strong{display:block;color:var(--text);font-size:1.48rem;letter-spacing:-.035em;margin-top:6px;font-variant-numeric:tabular-nums}
+.one-goal-total small{display:block;color:var(--muted);font-size:.74rem;margin-top:4px}
+.one-goal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.one-goal-toolbar h2{margin:0;font-size:1rem}
+.one-goal-toolbar label{font-size:.74rem;color:var(--muted)}
+.one-goal-toolbar select{margin-left:6px;min-height:32px}
+.one-goal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.one-goal-card{min-width:0;border:1px solid var(--border);border-radius:12px;padding:21px;background:linear-gradient(145deg,color-mix(in srgb,var(--success) 10%,var(--surface)),var(--surface) 67%)}
+.one-goal-card-top{display:flex;align-items:start;justify-content:space-between;gap:8px}
+.one-goal-card h3{font-size:1.1rem;letter-spacing:-.02em;margin:3px 0 0;overflow-wrap:anywhere}
+.one-goal-state{font-size:.67rem;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:4px 7px}
+.one-goal-amount{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-top:22px}
+.one-goal-amount strong{font-size:1.52rem;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.one-goal-amount span{font-size:.77rem;color:var(--muted)}
+.one-goal-bar{height:8px;border-radius:50px;background:var(--surface-hover);overflow:hidden;margin:13px 0 9px}
+.one-goal-bar span{height:100%;display:block;background:var(--success);border-radius:inherit}
+.one-goal-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.73rem;color:var(--muted)}
+.one-goal-hint{font-size:.79rem;color:var(--success);margin:16px 0 13px;min-height:20px}
+.one-goal-actions{display:flex;gap:8px;flex-wrap:wrap}
+.one-goal-actions .btn{padding:8px 13px}
+.one-goal-card-details{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
+.one-goal-card-details summary{color:var(--muted);cursor:pointer;font-size:.76rem}
+.one-goal-history{margin-top:12px;display:grid;gap:6px}
+.one-goal-history-row{display:flex;justify-content:space-between;gap:8px;font-size:.72rem;padding:7px 0;border-bottom:1px solid var(--border)}
+.one-goal-history-row span{color:var(--muted)}
+.one-goal-history-row strong{font-weight:650}
+.one-goal-card-more{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.one-goal-empty{grid-column:1/-1;padding:30px 20px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:.85rem;text-align:center}
+.one-goal-form-note{font-size:.73rem;color:var(--muted);line-height:1.45;margin:0}
+.one-goal-disclaimer{font-size:.76rem;color:var(--muted);line-height:1.5;margin:15px 0 18px}
+.one-goal-advanced{margin-top:18px;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:14px 17px}
+.one-goal-advanced>summary{cursor:pointer;font-size:.85rem;font-weight:650}
+.one-goal-advanced-body{padding-top:16px}
+.one-goal-context{border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:15px 17px;margin:0 0 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.one-goal-context[hidden]{display:none!important}
+.one-goal-context strong{font-weight:680}
+.one-goal-context p{color:var(--muted);font-size:.72rem;margin:4px 0 0;max-width:470px}
+.one-goal-context-metrics{display:flex;gap:23px;flex-wrap:wrap}
+.one-goal-context-metrics>span{font-size:.67rem;color:var(--muted)}
+.one-goal-context-metrics strong{font-size:.9rem;color:var(--text);display:block;margin-top:3px;font-variant-numeric:tabular-nums}
+.one-goal-context-link{background:transparent;border:0;color:var(--success);font-size:.73rem;font-weight:650;cursor:pointer}
+.one-goal-context-rows{width:100%;display:grid;gap:7px}
+.one-goal-context-rows>div{display:flex;justify-content:space-between;gap:12px;font-size:.73rem}
+.one-goal-context-rows span{color:var(--muted)}
+@media(max-width:760px){.one-goal-grid{grid-template-columns:1fr}.one-goal-header{display:block}.one-goal-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.one-goal-amount strong{font-size:1.3rem}}
+@media(max-width:420px){.one-goal-summary{grid-template-columns:1fr}.one-goal-card{padding:17px}.one-goal-toolbar{flex-wrap:wrap}}
+
+/* Metas: superficies neutrales y estructura idéntica entre temas. */
+#view-capital .one-goal-card{background:var(--surface);color:var(--text)}
+#view-capital .one-goal-hint{color:var(--muted)}
+#view-capital .one-goal-context-link{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+#view-capital .one-goal-card .one-goal-bar{background:var(--surface-hover)}
+#view-capital .one-goal-card .one-goal-bar>span{background:var(--success)}
+#view-capital .one-goal-total,#view-capital .one-goal-advanced{box-shadow:none}
+#view-capital .one-goal-card h3{color:var(--text)}
+/* Movimientos centraliza 3 movimientos y dos acciones vinculadas sin doble registro. */
+.one-move-dialog .m2-quick-types{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.one-move-dialog .m2-quick-types>button{grid-column:span 2;white-space:normal;line-height:1.25;min-height:42px}
+.one-move-dialog .m2-quick-types>button[data-one-action]{grid-column:span 3}
+.one-central-goal-form[hidden],#movementForm[hidden],#movementSplitToggle[hidden]{display:none!important}
+.one-central-goal-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.one-central-goal-form .field{min-width:0}
+.one-central-goal-form .one-move-amount,.one-central-goal-form .field.wide,.one-central-goal-form .form-actions{grid-column:1/-1}
+.one-central-goal-form .one-move-amount input{font-size:1.45rem;font-weight:720;min-height:50px}
+.one-central-goal-form .money-input{grid-template-columns:minmax(0,1fr) 100px}
+.one-central-goal-form .form-actions>button{width:100%}
+.one-central-goal-hint{grid-column:1/-1;color:var(--muted);font-size:.78rem;line-height:1.5;margin:0}
+.one-central-goal-empty{grid-column:1/-1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:15px}
+.one-central-goal-empty p{margin:0 0 10px;color:var(--muted);font-size:.8rem}
+.one-central-feedback{margin:0 0 16px;padding:12px 15px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:.8rem;line-height:1.5}
+.one-central-feedback[hidden]{display:none!important}
+@media(max-width:520px){.one-move-dialog .m2-quick-types>button{font-size:.7rem;padding:9px 3px}.one-central-goal-form{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -1531,6 +1609,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
     </div>
 
     <section id="goalMovementPreview" class="one-goal-context" hidden aria-label="Transferencias internas de metas"></section>
+    <div id="oneCentralFeedback" class="one-central-feedback" role="status" aria-live="polite" hidden></div>
     <div class="one-move-period-control" aria-label="Período de movimientos">
       <div class="one-move-view-switch" role="group" aria-label="Vista del período">
         <button type="button" data-one-move-level="quarter" aria-pressed="false">Trimestre</button>
@@ -1583,7 +1662,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
     <dialog class="one-move-dialog" id="movementComposerDialog" aria-labelledby="movementComposerTitle">
       <div id="movementComposer" class="one-move-composer" hidden>
         <div class="one-move-composer-head"><div><h2 id="movementComposerTitle">Nuevo movimiento</h2><p class="muted">Registralo en segundos.</p></div><button class="v7-icon-button" id="closeMovementComposer" aria-label="Cerrar" type="button">×</button></div>
-        <div class="m2-quick-types" id="movementQuickTypes" role="group" aria-label="Tipo de movimiento"><button type="button" data-m2-type="Gasto" class="active" aria-pressed="true">Gasto</button><button type="button" data-m2-type="Ingreso" aria-pressed="false">Ingreso</button><button type="button" data-m2-type="Pago deuda" aria-pressed="false">Pago deuda</button></div>
+        <div class="m2-quick-types" id="movementQuickTypes" role="group" aria-label="Tipo de movimiento"><button type="button" data-m2-type="Gasto" class="active" aria-pressed="true">Gasto</button><button type="button" data-m2-type="Ingreso" aria-pressed="false">Ingreso</button><button type="button" data-m2-type="Pago deuda" aria-pressed="false">Pago deuda</button><button type="button" data-one-action="cobro" aria-pressed="false" title="Crear un cobro pendiente, sin registrar ingreso">Cobro</button><button type="button" data-one-action="goal" aria-pressed="false" title="Aportar a una meta, sin registrar gasto">Ahorro para meta</button></div>
         <button type="button" id="movementSplitToggle" class="one-move-split-toggle" aria-pressed="false" aria-controls="movementSplitDetails">＋ Dividir entre categorías</button>
         <form id="movementForm" class="form-grid one-move-form">
           <input type="hidden" id="mEditId"><input type="hidden" id="mScheduledId"><select id="mType" required hidden aria-hidden="true"></select>
@@ -1605,6 +1684,19 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
           </div>
           <div class="form-actions one-move-form-actions"><button class="btn" id="movementSubmitBtn" type="submit">Registrar</button><button class="btn secondary" type="button" id="movementCancelEdit" hidden>Cancelar</button></div>
         </form>
+        <form id="oneCentralGoalForm" class="one-central-goal-form" hidden>
+          <p class="one-central-goal-hint">Un aporte traslada dinero de tu saldo operativo a una meta. No crea un gasto ni duplica movimientos.</p>
+          <div id="oneCentralGoalEmpty" class="one-central-goal-empty" hidden>
+            <p>Primero necesitás una meta activa. Podés crearla sin salir del registro.</p>
+            <button class="btn secondary" id="oneCentralCreateGoal" type="button">+ Crear una meta</button>
+          </div>
+          <div class="field wide"><label for="oneCentralGoalSelect">Meta de ahorro</label><select id="oneCentralGoalSelect" required></select></div>
+          <div class="field one-move-amount"><label for="oneCentralGoalAmount">Monto del aporte</label><div class="money-input"><input id="oneCentralGoalAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><select id="oneCentralGoalCurrency" aria-label="Moneda del ahorro"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
+          <div class="field wide"><label for="oneCentralGoalDate">Fecha</label><input id="oneCentralGoalDate" type="date" required></div>
+          <div class="field wide"><label for="oneCentralGoalDescription">Descripción (opcional)</label><input id="oneCentralGoalDescription" placeholder="Ej. Aporte quincenal"></div>
+          <div class="form-actions"><button class="btn" id="oneCentralGoalSubmit" type="submit">Registrar ahorro para meta</button></div>
+        </form>
+
       </div>
     </dialog>
   </section>
@@ -4234,57 +4326,6 @@ function printSharedStatement(groupId){
   const win=window.open("","_blank","width=900,height=700");if(!win)return alert("El navegador bloqueó la ventana de impresión.");
   const safe=s=>String(s??"").replace(/[&<>\"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(group.name)} · ${safe(month)}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;margin:36px}h1{margin:0;font-size:24px}.muted{color:#666;margin:6px 0 24px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border-bottom:1px solid #ddd;padding:9px;text-align:left;font-size:13px}th{background:#f3f4f6}.num{text-align:right}.total{margin-top:20px;display:flex;justify-content:flex-end;gap:28px;flex-wrap:wrap;font-size:15px}.brand{font-weight:800;letter-spacing:.03em;margin-bottom:24px}.carry{font-size:11px;color:#7a5b00;font-weight:700}@media print{body{margin:18mm}}
-/* Metas Beta 1.0 · identical structure in light/dark, theme tokens only. */
-.one-goal-header{display:flex;align-items:end;justify-content:space-between;gap:12px}
-.one-goal-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 19px}
-.one-goal-total{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
-.one-goal-total span,.one-goal-eyebrow{display:block;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:.075em}
-.one-goal-total strong{display:block;color:var(--text);font-size:1.48rem;letter-spacing:-.035em;margin-top:6px;font-variant-numeric:tabular-nums}
-.one-goal-total small{display:block;color:var(--muted);font-size:.74rem;margin-top:4px}
-.one-goal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
-.one-goal-toolbar h2{margin:0;font-size:1rem}
-.one-goal-toolbar label{font-size:.74rem;color:var(--muted)}
-.one-goal-toolbar select{margin-left:6px;min-height:32px}
-.one-goal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.one-goal-card{min-width:0;border:1px solid var(--border);border-radius:12px;padding:21px;background:linear-gradient(145deg,color-mix(in srgb,var(--success) 10%,var(--surface)),var(--surface) 67%)}
-.one-goal-card-top{display:flex;align-items:start;justify-content:space-between;gap:8px}
-.one-goal-card h3{font-size:1.1rem;letter-spacing:-.02em;margin:3px 0 0;overflow-wrap:anywhere}
-.one-goal-state{font-size:.67rem;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:4px 7px}
-.one-goal-amount{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-top:22px}
-.one-goal-amount strong{font-size:1.52rem;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
-.one-goal-amount span{font-size:.77rem;color:var(--muted)}
-.one-goal-bar{height:8px;border-radius:50px;background:var(--surface-hover);overflow:hidden;margin:13px 0 9px}
-.one-goal-bar span{height:100%;display:block;background:var(--success);border-radius:inherit}
-.one-goal-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.73rem;color:var(--muted)}
-.one-goal-hint{font-size:.79rem;color:var(--success);margin:16px 0 13px;min-height:20px}
-.one-goal-actions{display:flex;gap:8px;flex-wrap:wrap}
-.one-goal-actions .btn{padding:8px 13px}
-.one-goal-card-details{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
-.one-goal-card-details summary{color:var(--muted);cursor:pointer;font-size:.76rem}
-.one-goal-history{margin-top:12px;display:grid;gap:6px}
-.one-goal-history-row{display:flex;justify-content:space-between;gap:8px;font-size:.72rem;padding:7px 0;border-bottom:1px solid var(--border)}
-.one-goal-history-row span{color:var(--muted)}
-.one-goal-history-row strong{font-weight:650}
-.one-goal-card-more{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.one-goal-empty{grid-column:1/-1;padding:30px 20px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:.85rem;text-align:center}
-.one-goal-form-note{font-size:.73rem;color:var(--muted);line-height:1.45;margin:0}
-.one-goal-disclaimer{font-size:.76rem;color:var(--muted);line-height:1.5;margin:15px 0 18px}
-.one-goal-advanced{margin-top:18px;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:14px 17px}
-.one-goal-advanced>summary{cursor:pointer;font-size:.85rem;font-weight:650}
-.one-goal-advanced-body{padding-top:16px}
-.one-goal-context{border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:15px 17px;margin:0 0 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.one-goal-context[hidden]{display:none!important}
-.one-goal-context strong{font-weight:680}
-.one-goal-context p{color:var(--muted);font-size:.72rem;margin:4px 0 0;max-width:470px}
-.one-goal-context-metrics{display:flex;gap:23px;flex-wrap:wrap}
-.one-goal-context-metrics>span{font-size:.67rem;color:var(--muted)}
-.one-goal-context-metrics strong{font-size:.9rem;color:var(--text);display:block;margin-top:3px;font-variant-numeric:tabular-nums}
-.one-goal-context-link{background:transparent;border:0;color:var(--success);font-size:.73rem;font-weight:650;cursor:pointer}
-.one-goal-context-rows{width:100%;display:grid;gap:7px}
-.one-goal-context-rows>div{display:flex;justify-content:space-between;gap:12px;font-size:.73rem}
-.one-goal-context-rows span{color:var(--muted)}
-@media(max-width:760px){.one-goal-grid{grid-template-columns:1fr}.one-goal-header{display:block}.one-goal-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.one-goal-amount strong{font-size:1.3rem}}
-@media(max-width:420px){.one-goal-summary{grid-template-columns:1fr}.one-goal-card{padding:17px}.one-goal-toolbar{flex-wrap:wrap}}
 </style></head><body><div class="brand">RASTRO</div><h1>${safe(group.name)}</h1><div class="muted">${group.person?`Desglose para ${safe(group.person)} · `:""}${safe(monthLabel(month))}</div><table><thead><tr><th>Fecha</th><th>Mes origen</th><th>Persona</th><th>Tipo</th><th>Concepto</th><th>Estado</th><th class="num">Monto</th></tr></thead><tbody>${rows.map(c=>{const origin=c.chargeMonth||monthKey(c.date),isCarry=isReceivableCarryover(c,month);return `<tr><td>${safe(dateLabel(c.date))}</td><td>${safe(monthLabel(origin))}${isCarry?`<br><span class="carry">Arrastre pendiente</span>`:""}</td><td>${safe(c.person)}</td><td>${safe(c.kind)}${c.sourceRecurringId?" · Mensual":""}</td><td>${safe(c.description)}</td><td>${cobroPaymentState(c)}</td><td class="num">${safe(money(receivableAmountCRC(c)))}${safe(c.currency&&normalizeCurrency(c.currency)!==displayCurrency()?` (original ${originalMoney(c.amount,c.currency)})`:``)}</td></tr>`}).join("")||`<tr><td colspan="7">Sin cobros</td></tr>`}</tbody></table><div class="total"><div><strong>Cargos del mes:</strong> ${safe(money(currentTotal))}</div><div><strong>Arrastre anterior:</strong> ${safe(money(carry))}</div><div><strong>Pendiente total:</strong> ${safe(money(pending))}</div></div><script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script>
 
 
@@ -4845,6 +4886,8 @@ function m2ResetComposer(close=true){
   document.getElementById("mType").value="Gasto";
   document.getElementById("mCurrency").value=displayCurrency();
   refreshMovementCategorySelect();refreshDebtSelect();m2RefreshAccounts("");updateMovementFields();m2RefreshQuickTypes();
+  oneCentralRestoreMovementForm();
+  document.getElementById("oneCentralGoalForm").reset();
   if(close){const dialog=document.getElementById("movementComposerDialog");if(dialog?.open)dialog.close();document.getElementById("movementComposer").hidden=true;}
 }
 function m2OpenComposer(m=null,{repeat=false,scheduledId=""}={}){
@@ -4975,6 +5018,7 @@ function m2SaveTemplate(){
 function m2RefreshQuickTypes(){
   const type=document.getElementById("mType")?.value;
   document.querySelectorAll("[data-m2-type]").forEach(b=>{const active=b.dataset.m2Type===type;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));b.hidden=b.dataset.m2Type==="Pago deuda"&&!oneModuleEnabled("debts")&&type!=="Pago deuda";});
+  document.querySelectorAll("[data-one-action]").forEach(b=>{b.hidden=!!document.getElementById("mEditId")?.value||!!document.getElementById("mScheduledId")?.value;});
   const toggle=document.getElementById("movementSplitToggle");
   if(toggle)toggle.hidden=type!=="Gasto";
   if(type!=="Gasto")m2SetSplitMode(false,{createRows:false});
@@ -5410,6 +5454,12 @@ function bind(){
     if(payments.length)syncCobroPaymentState(obj);
     const i=data.sharedCharges.findIndex(c=>c.id===cid);i>=0?data.sharedCharges[i]=obj:data.sharedCharges.push(obj);
     save();document.getElementById("sharedChargeDialog").close();document.getElementById("sharedStatementMonth").value=chargeMonth;renderSharedCharges();
+    if(oneCentralCobroFromMovements){
+      oneCentralCobroFromMovements=false;
+      if(!oneModuleEnabled("shared"))oneSetModuleEnabled("shared",true);
+      oneCentralNotify("Cobro de "+originalMoney(obj.amount,obj.currency)+" registrado para "+(obj.person||"la persona indicada")+". No se registró como ingreso; los pagos se controlan desde Cobros.");
+      renderMovements();
+    }
   });
 
   document.getElementById("addReserveBtn").addEventListener("click",()=>openReserve());
@@ -6179,6 +6229,79 @@ function refreshV7MovementCategoryFilter(){
   if([...el.options].some(o=>o.value===current))el.value=current;
 }
 
+
+/* Acciones desde Movimientos reutilizan Cobros y reserveMovements; sin ingresos/gastos ficticios. */
+let oneCentralCobroFromMovements=false;
+function oneCentralNotify(message){
+  const note=document.getElementById("oneCentralFeedback");
+  if(!note)return;
+  note.textContent=String(message||"");
+  note.hidden=!message;
+}
+function oneCentralRestoreMovementForm(){
+  document.getElementById("oneCentralGoalForm").hidden=true;
+  document.getElementById("movementForm").hidden=false;
+  document.querySelectorAll("[data-one-action]").forEach(b=>{b.classList.remove("active");b.setAttribute("aria-pressed","false")});
+  document.getElementById("movementComposerTitle").textContent="Nuevo movimiento";
+  document.getElementById("movementSplitToggle").hidden=document.getElementById("mType").value!=="Gasto";
+}
+function oneCentralPrepareGoalList(){
+  const select=document.getElementById("oneCentralGoalSelect"),goals=activeReserves().filter(r=>r.type==="goal");
+  select.replaceChildren();
+  for(const r of goals){const option=document.createElement("option");option.value=r.id;option.textContent=r.name;select.appendChild(option);}
+  document.getElementById("oneCentralGoalEmpty").hidden=goals.length>0;
+  document.getElementById("oneCentralGoalSubmit").disabled=goals.length===0;
+  select.required=goals.length>0;
+  return goals;
+}
+function oneCentralOpenGoal(){
+  if(document.getElementById("mEditId")?.value||document.getElementById("mScheduledId")?.value)return;
+  const form=document.getElementById("oneCentralGoalForm");
+  form.reset();
+  oneCentralPrepareGoalList();
+  document.getElementById("oneCentralGoalDate").value=todayIso();
+  document.getElementById("oneCentralGoalCurrency").value=displayCurrency();
+  document.getElementById("movementForm").hidden=true;
+  document.getElementById("movementSplitToggle").hidden=true;
+  form.hidden=false;
+  document.getElementById("movementComposerTitle").textContent="Registrar ahorro para meta";
+  document.querySelectorAll("[data-m2-type],[data-one-action]").forEach(b=>{
+    const active=b.dataset.oneAction==="goal";
+    b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
+  });
+  if(!document.getElementById("oneCentralGoalEmpty").hidden)document.getElementById("oneCentralCreateGoal").focus();
+  else document.getElementById("oneCentralGoalAmount").focus({preventScroll:true});
+}
+function oneCentralOpenCobro(){
+  if(document.getElementById("mEditId")?.value||document.getElementById("mScheduledId")?.value)return;
+  m2ResetComposer();
+  oneCentralCobroFromMovements=true;
+  try{openSharedCharge()}catch(error){oneCentralCobroFromMovements=false;throw error;}
+}
+function oneCentralSaveGoal(event){
+  event.preventDefault();
+  if(storageReadError)return alert("No se puede guardar mientras exista un problema leyendo el almacenamiento local.");
+  const reserveId=document.getElementById("oneCentralGoalSelect").value;
+  const fund=data.reserves.find(r=>r.id===reserveId&&r.type==="goal"&&reserveStatus(r)==="active");
+  if(!fund)return alert("Seleccioná una meta activa.");
+  const amount=Number(document.getElementById("oneCentralGoalAmount").value);
+  if(!Number.isFinite(amount)||amount<=0)return alert("El aporte debe ser mayor que cero.");
+  const candidate={
+    id:id(),reserveId,date:document.getElementById("oneCentralGoalDate").value,
+    type:"Aporte",amount,currency:normalizeCurrency(document.getElementById("oneCentralGoalCurrency").value),
+    ...currentFxSnapshot(),description:document.getElementById("oneCentralGoalDescription").value.trim(),
+    createdAt:new Date().toISOString()
+  };
+  const permission=oneGoalTxnEligibility(fund,candidate);
+  if(!permission.ok)return alert(permission.error);
+  data.reserveMovements.push(candidate);
+  try{save()}catch(error){data.reserveMovements.pop();return alert("No se pudo guardar el aporte. No se creó ningún movimiento adicional.");}
+  if(!oneModuleEnabled("capital"))oneSetModuleEnabled("capital",true);
+  m2ResetComposer();
+  renderMovements();renderDashboard();renderPlan();renderCapital();
+  oneCentralNotify("Aporte de "+originalMoney(amount,candidate.currency)+" guardado en la meta “"+fund.name+"”. Es una transferencia interna, no un gasto.");
+}
+
 function initMovements2(){
   const form=document.getElementById("movementForm"),composer=document.getElementById("movementComposer");
   m2ResetComposer(true);
@@ -6193,9 +6316,20 @@ function initMovements2(){
   dialog?.addEventListener("click",e=>{if(e.target===dialog)m2ResetComposer()});
   document.getElementById("movementCancelEdit")?.addEventListener("click",()=>m2ResetComposer());
   document.querySelectorAll("[data-m2-type]").forEach(btn=>btn.addEventListener("click",()=>{
+    if(!document.getElementById("oneCentralGoalForm").hidden)oneCentralRestoreMovementForm();
     document.getElementById("mType").value=btn.dataset.m2Type;
     document.getElementById("mType").dispatchEvent(new Event("change",{bubbles:true}));
   }));
+  document.querySelector('[data-one-action="goal"]')?.addEventListener("click",oneCentralOpenGoal);
+  document.querySelector('[data-one-action="cobro"]')?.addEventListener("click",oneCentralOpenCobro);
+  document.getElementById("oneCentralGoalForm")?.addEventListener("submit",oneCentralSaveGoal);
+  document.getElementById("oneCentralCreateGoal")?.addEventListener("click",()=>{
+    m2ResetComposer();
+    if(!oneModuleEnabled("capital"))oneSetModuleEnabled("capital",true);
+    openReserve();
+    oneCentralNotify("Creá tu meta y después elegí “Ahorro para meta” desde Movimientos para hacer el primer aporte.");
+  });
+  document.getElementById("sharedChargeDialog")?.addEventListener("close",()=>{oneCentralCobroFromMovements=false});
   document.getElementById("mType")?.addEventListener("change",m2RefreshQuickTypes);
   const splits=document.getElementById("movementSplitRows");
   document.getElementById("movementSplitToggle")?.addEventListener("click",()=>{
