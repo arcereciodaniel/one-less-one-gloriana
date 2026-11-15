@@ -1393,6 +1393,8 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 .one-payday-panel label{display:flex;align-items:center;gap:5px;color:var(--muted)}
 .one-payday-panel input{max-width:65px;min-height:32px;border:1px solid var(--border);border-radius:6px;color:var(--text);background:var(--surface);padding:4px 6px}
 
+.one-budget-savings{display:block;font-size:.67rem;color:var(--muted);margin-top:4px}
+#fBudgetCategory+small,#oneCentralGoalCategory+small{display:block;font-size:.73rem;margin-top:5px}
 </style>
 </head>
 <body>
@@ -1701,6 +1703,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
             <button class="btn secondary" id="oneCentralCreateGoal" type="button">+ Crear una meta</button>
           </div>
           <div class="field wide"><label for="oneCentralGoalSelect">Meta de ahorro</label><select id="oneCentralGoalSelect" required></select></div>
+          <div class="field wide"><label for="oneCentralGoalCategory">Vincular al presupuesto</label><select id="oneCentralGoalCategory"></select><small class="muted">Seleccioná “Ahorro e inversión” para reflejar el aporte en esa categoría sin crear un gasto.</small></div>
           <div class="field one-move-amount"><label for="oneCentralGoalAmount">Monto del aporte</label><div class="money-input"><input id="oneCentralGoalAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><select id="oneCentralGoalCurrency" aria-label="Moneda del ahorro"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
           <div class="field wide"><label for="oneCentralGoalDate">Fecha</label><input id="oneCentralGoalDate" type="date" required></div>
           <div class="field wide"><label for="oneCentralGoalDescription">Descripción (opcional)</label><input id="oneCentralGoalDescription" placeholder="Ej. Aporte quincenal"></div>
@@ -1998,6 +2001,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
       <div class="field"><label>Tipo</label><select id="fType"><option value="protected">Capital protegido</option><option value="goal">Meta / reserva</option></select></div>
       <div class="field"><label>Meta (opcional)</label><div class="money-input"><input id="fTarget" type="number" min="0" step="0.01" value="0"><select id="fTargetCurrency"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
       <div class="field"><label>Fecha objetivo (opcional)</label><input id="fTargetDate" type="date"></div>
+      <div class="field wide"><label>Categoría de ahorro en Presupuesto (opcional)</label><select id="fBudgetCategory"></select><small class="muted">Los aportes cuentan como ahorro ejecutado en esta categoría, no como un gasto nuevo.</small></div>
       <div class="field"><label>Saldo inicial ya separado</label><div class="money-input"><input id="fOpeningAmount" type="number" min="0" step="0.01" value="0"><select id="fOpeningCurrency"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
       <div class="field"><label>Fecha inicial</label><input id="fOpeningDate" type="date" required></div>
       <p class="one-goal-form-note wide">El saldo inicial debe ser dinero que ya estaba reservado fuera de tu saldo operativo. Para apartar dinero de tu saldo actual, iniciá en cero y registrá un <strong>Aporte</strong>: así no se cuenta dos veces.</p>
@@ -3212,12 +3216,12 @@ function periodMovements(p,throughDate=null){
   return data.movements.filter(m=>m.period===periodKey(p)&&(!throughDate||m.date<=throughDate));
 }
 function periodHasRealSignal(p){
-  return periodMovements(p).length>0 || !!reconciliationForPeriod(p);
+  return periodMovements(p).length>0 || !!reconciliationForPeriod(p) || (data.reserveMovements||[]).some(t=>t.type==="Aporte"&&periodKey(periodForDate(t.date)||{})===periodKey(p));
 }
 function remainingBudgetForCurrentPeriod(p,throughDate){
   const ms=periodMovements(p,throughDate).filter(m=>m.type==="Gasto"||m.type==="Pago deuda");
   return budgetCategories(["Gasto","Pago deuda"],p).reduce((sum,c)=>{
-    const spent=ms.reduce((s,m)=>s+movementCategoryAmountCRC(m,c),0);
+    const spent=ms.reduce((s,m)=>s+movementCategoryAmountCRC(m,c),0)+oneBudgetSavingsActual(p,c.id,throughDate);
     return sum+Math.max(0,periodCategoryBudgetCRC(p,c.id,"pay")-spent);
   },0);
 }
@@ -3274,7 +3278,8 @@ function allActualRows(){
   return rows.map(p=>{
     const ms=periodMovements(p);
     const actualIncome=ms.filter(m=>m.type==="Ingreso").reduce((s,m)=>s+movementAmountCRC(m),0);
-    const actualExpenses=ms.filter(m=>m.type==="Gasto"||m.type==="Pago deuda").reduce((s,m)=>s+movementAmountCRC(m),0);
+    const actualExpenses=ms.filter(m=>m.type==="Gasto"||m.type==="Pago deuda").reduce((s,m)=>s+movementAmountCRC(m),0)
+      +oneSavingsCategories().reduce((sum,c)=>sum+oneBudgetSavingsActual(p,c.id),0);
     const end=periodEndDate(p);
     const actualBalance=p.date<=today?actualBalanceAt(end<today?end:today):null;
     return {...p,actualIncome,actualExpenses,actualBalance};
@@ -3328,10 +3333,11 @@ function categoryReportFiltered(level,value){
     const spent=movements
       .filter(m=>(m.type==="Gasto"||m.type==="Pago deuda")&&movementMatchesCategory(m,c))
       .map(m=>movementCategoryAmountCRC(m,c));
+    for(const p of rows){const saved=oneBudgetSavingsActual(p,c.id);if(saved>.005)spent.push(saved)}
     if(!planned.some(v=>Math.abs(v)>0.0001)&&!spent.some(v=>Math.abs(v)>0.0001))return [];
     const budget=planned.reduce((sum,v)=>sum+v,0);
     const actual=spent.reduce((sum,v)=>sum+v,0);
-    return [{category:c.name,categoryId:c.id,type:c.type,budget,actual,variance:budget-actual,used:budget?actual/budget:0}];
+    return [{category:c.name,categoryId:c.id,type:c.type,budget,actual,variance:budget-actual,used:budget?actual/budget:0,includesSavings:rows.some(p=>oneBudgetSavingsActual(p,c.id)>.005)}];
   });
 }
 function selectedSummary(level,value){
@@ -3645,11 +3651,12 @@ function r8BudgetLine(category,period){
   const amount=num(period.categoryBudgets?.[cid]);
   const planned=periodCategoryBudgetCRC(period,cid,category.type==="Ingreso"?"receive":"pay");
   const spent=category.type==="Ingreso"?0:selectedMovements("fortnight",key)
-    .filter(m=>m.type===category.type).reduce((sum,m)=>sum+movementCategoryAmountCRC(m,category),0);
+    .filter(m=>m.type===category.type).reduce((sum,m)=>sum+movementCategoryAmountCRC(m,category),0)+oneBudgetSavingsActual(period,cid);
   const excess=category.type==="Ingreso"?0:spent-planned;
   const extraTitle=category.type==="Ingreso"&&period.categoryBudgetSources?.[cid]==="auto"?"Ingreso generado automáticamente":"Editar presupuesto de esta categoría";
   return `<div class="r8-budget-row">
     <span class="r8-budget-row-label" title="${safe(category.name)}"><span>${safe(category.name)}</span>
+      ${oneBudgetSavingsActual(period,cid)>.005?`<small class="one-budget-savings">Ahorrado: ${money(oneBudgetSavingsActual(period,cid))}</small>`:""}
       ${excess>.005?`<small class="r8-over-budget">Superado por ${money(excess)} <button type="button" data-r8-edit-budget="${key}|${cid}" aria-label="Ajustar presupuesto de ${safe(category.name)}">Ajustar</button></small>`:""}
     </span>
     <span class="r8-edit-cell">
@@ -3670,7 +3677,7 @@ function r8BudgetSection(types,heading,period){
   const total=cats.reduce((sum,c)=>sum+periodCategoryBudgetCRC(period,c.id,intent),0);
   const periodMovements=selectedMovements("fortnight",periodKey(period));
   const main=cats.filter(c=>Math.abs(num(period.categoryBudgets?.[c.id]))>.0001||
-    (c.type!=="Ingreso"&&periodMovements.some(m=>m.type===c.type&&movementCategoryAmountCRC(m,c)>.005)));
+    (c.type!=="Ingreso"&&(periodMovements.some(m=>m.type===c.type&&movementCategoryAmountCRC(m,c)>.005)||oneBudgetSavingsActual(period,c.id)>.005)));
   const empty=cats.filter(c=>!main.includes(c));
   return `<div class="r8-section">
     <div class="r8-section-heading"><span>${heading}</span><strong>${money(total)}</strong></div>
@@ -3928,6 +3935,7 @@ function openReserve(r=null){
   document.getElementById("fLocation").value=r?.location||"";
   document.getElementById("fRate").value=num(r?.rate);
   document.getElementById("fNotes").value=r?.notes||"";
+  oneFillGoalBudgetCategory("fBudgetCategory",r?.budgetCategoryId||"");
   document.getElementById("reserveDialog").showModal();
 }
 function reserveStatus(r){return r?.status==="archived"?"archived":"active"}
@@ -4374,6 +4382,26 @@ function cancelRecurringFromMonth(charge){
 
 
 /* Metas Beta 1.0: vistas derivadas de reserves / reserveMovements, sin otro libro contable. */
+/* Enlaces contables: las metas son transferencias; el presupuesto muestra la ejecución sin un gasto duplicado. */
+function oneSavingsCategories(){return budgetCategories("Gasto").filter(c=>categoryIsActive(c))}
+function oneSuggestedSavingsCategoryId(){
+  return oneSavingsCategories().find(c=>/(ahorro|inversi[oó]n|meta)/i.test(c.name||""))?.id||"";
+}
+function oneGoalBudgetCategory(r){return r?.budgetCategoryId||oneSuggestedSavingsCategoryId()}
+function oneContributionCategory(t){
+  return t.budgetCategoryId||oneGoalBudgetCategory((data.reserves||[]).find(r=>r.id===t.reserveId));
+}
+function oneBudgetSavingsActual(p,cid,throughDate=""){
+  if(!cid)return 0;
+  return (data.reserveMovements||[]).filter(t=>t.type==="Aporte"&&oneContributionCategory(t)===cid&&
+    periodKey(periodForDate(t.date)||{})===periodKey(p)&&(!throughDate||t.date<=throughDate))
+    .reduce((sum,t)=>sum+reserveTxnHistoricalCRC(t,"pay"),0);
+}
+function oneFillGoalBudgetCategory(id,selected=""){
+  const el=document.getElementById(id);if(!el)return;
+  const choices=[{value:"",label:"Sin categoría vinculada"},...oneSavingsCategories().map(c=>({value:c.id,label:c.name}))];
+  fillObjectSelect(el,choices,selected||oneSuggestedSavingsCategoryId());
+}
 function oneGoalMonthsLeft(r,asOf=todayIso()){
   if(!r?.targetDate||!restoreValidDate(r.targetDate)||r.targetDate<=asOf)return 0;
   const end=Date.parse(r.targetDate+"T00:00:00Z"),start=Date.parse(asOf+"T00:00:00Z");
@@ -5503,7 +5531,7 @@ function bind(){
   document.getElementById("reserveForm").addEventListener("submit",e=>{
     e.preventDefault();const rid=document.getElementById("fId").value;
     const oldReserve=data.reserves.find(r=>r.id===rid);
-    const obj={id:rid||id(),name:document.getElementById("fName").value.trim(),type:document.getElementById("fType").value,target:num(document.getElementById("fTarget").value),targetCurrency:normalizeCurrency(document.getElementById("fTargetCurrency").value),targetDate:document.getElementById("fType").value==="goal"?document.getElementById("fTargetDate").value:(oldReserve?.targetDate||""),openingAmount:num(document.getElementById("fOpeningAmount").value),openingCurrency:normalizeCurrency(document.getElementById("fOpeningCurrency").value),openingDate:document.getElementById("fOpeningDate").value,location:document.getElementById("fLocation").value.trim(),rate:num(document.getElementById("fRate").value),notes:document.getElementById("fNotes").value.trim(),status:oldReserve?.status||"active",closedAt:oldReserve?.closedAt||"",closedReason:oldReserve?.closedReason||""};
+    const obj={id:rid||id(),name:document.getElementById("fName").value.trim(),type:document.getElementById("fType").value,target:num(document.getElementById("fTarget").value),targetCurrency:normalizeCurrency(document.getElementById("fTargetCurrency").value),targetDate:document.getElementById("fType").value==="goal"?document.getElementById("fTargetDate").value:(oldReserve?.targetDate||""),openingAmount:num(document.getElementById("fOpeningAmount").value),openingCurrency:normalizeCurrency(document.getElementById("fOpeningCurrency").value),openingDate:document.getElementById("fOpeningDate").value,location:document.getElementById("fLocation").value.trim(),rate:num(document.getElementById("fRate").value),notes:document.getElementById("fNotes").value.trim(),budgetCategoryId:document.getElementById("fBudgetCategory").value,status:oldReserve?.status||"active",closedAt:oldReserve?.closedAt||"",closedReason:oldReserve?.closedReason||""};
     if(obj.targetDate&&!restoreValidDate(obj.targetDate))return alert("Ingresá una fecha objetivo válida.");
     if(obj.targetDate&&obj.openingDate&&obj.targetDate<obj.openingDate)return alert("La fecha objetivo no puede ser anterior al inicio del fondo.");
     const eligibility=oneGoalTxnEligibility(obj,null,rid);
@@ -6286,6 +6314,7 @@ function oneCentralPrepareGoalList(){
   document.getElementById("oneCentralGoalEmpty").hidden=goals.length>0;
   document.getElementById("oneCentralGoalSubmit").disabled=goals.length===0;
   select.required=goals.length>0;
+  oneFillGoalBudgetCategory("oneCentralGoalCategory",oneGoalBudgetCategory(goals.find(r=>r.id===select.value)));
   return goals;
 }
 function oneCentralOpenGoal(){
@@ -6322,7 +6351,7 @@ function oneCentralSaveGoal(event){
   if(!Number.isFinite(amount)||amount<=0)return alert("El aporte debe ser mayor que cero.");
   const candidate={
     id:id(),reserveId,date:document.getElementById("oneCentralGoalDate").value,
-    type:"Aporte",amount,currency:normalizeCurrency(document.getElementById("oneCentralGoalCurrency").value),
+    type:"Aporte",amount,currency:normalizeCurrency(document.getElementById("oneCentralGoalCurrency").value),budgetCategoryId:document.getElementById("oneCentralGoalCategory").value,
     ...currentFxSnapshot(),description:document.getElementById("oneCentralGoalDescription").value.trim(),
     createdAt:new Date().toISOString()
   };
@@ -6372,6 +6401,9 @@ function initMovements2(){
   document.querySelector('[data-one-action="goal"]')?.addEventListener("click",oneCentralOpenGoal);
   document.querySelector('[data-one-action="cobro"]')?.addEventListener("click",oneCentralOpenCobro);
   document.getElementById("oneCentralGoalForm")?.addEventListener("submit",oneCentralSaveGoal);
+  document.getElementById("oneCentralGoalSelect")?.addEventListener("change",e=>{
+    oneFillGoalBudgetCategory("oneCentralGoalCategory",oneGoalBudgetCategory(data.reserves.find(r=>r.id===e.target.value)));
+  });
   document.getElementById("oneCentralCreateGoal")?.addEventListener("click",()=>{
     m2ResetComposer();
     if(!oneModuleEnabled("capital"))oneSetModuleEnabled("capital",true);
