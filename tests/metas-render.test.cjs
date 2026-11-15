@@ -89,7 +89,7 @@ const goalView=g.document.getElementById("view-capital");
 assert.equal(g.getComputedStyle(goalView).display,"block");
 assert.equal(g.document.querySelector("#goalCardGrid .one-goal-card h3")?.textContent,"Viaje de prueba");
 const goalAmountText=g.document.querySelector("#goalCardGrid .one-goal-amount")?.textContent||"";
-assert(/20[\\s.,\\u00a0\\u202f]*000/.test(goalAmountText),"Debe reflejar el saldo original de ₡20.000: "+goalAmountText);
+assert(/20[\s.,\u00a0\u202f]*000/.test(goalAmountText),"Debe reflejar el saldo original de ₡20.000: "+goalAmountText);
 assert.equal(g.document.querySelector("#goalCardGrid .one-goal-card .one-goal-bar")!==null,true);
 console.log("OK: Metas vacías y con fondos existentes, modos claro/oscuro y navegación.");
 withGoal.dom.window.close();
