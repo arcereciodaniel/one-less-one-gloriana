@@ -2403,10 +2403,21 @@ function oneDateMonthDay(month,day){
   return month+"-"+String(Math.min(last,day)).padStart(2,"0");
 }
 function oneShiftDate(date,delta){return new Date(Date.parse(date+"T00:00:00Z")+delta*86400000).toISOString().slice(0,10)}
+function oneAlignMovementPeriods(raw,fromMonth){
+  for(const m of raw.movements||[]){
+    if(!m.date||m.date<fromMonth+"-01")continue;
+    const target=periodForDateIn(raw.periods,m.date);
+    if(!target||target.budgetMonth<fromMonth||m.period===periodKey(target))continue;
+    if(!m.originalPayPeriod)m.originalPayPeriod=m.period||"";
+    m.period=periodKey(target);
+    m.quarter=budgetQuarterFromMonth(target.budgetMonth);
+  }
+}
 function oneUpdatePaydayPeriods(fromMonth){
   for(const p of data.periods){
     if(p.budgetMonth>=fromMonth)p.date=canonicalPaymentDate(p.budgetMonth,p.fortnight,data.settings);
   }
+  oneAlignMovementPeriods(data,fromMonth);
 }
 function makeQuarter(q){
   const match=/^(\d{4})-T([1-4])$/.exec(q);
@@ -2684,6 +2695,8 @@ function migrateData(raw){
   raw.quarters=planningQuartersFrom(raw.periods);
   raw.categorySchemaVersion=1;
   raw.version=6.2;
+  // Mantener los movimientos del mes vigente en la quincena correcta sin perder el período previo.
+  oneAlignMovementPeriods(raw,todayIso().slice(0,7));
   return raw;
 }
 
