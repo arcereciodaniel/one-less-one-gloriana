@@ -3986,7 +3986,7 @@ function openReserve(r=null){
   document.getElementById("fLocation").value=r?.location||"";
   document.getElementById("fRate").value=num(r?.rate);
   document.getElementById("fNotes").value=r?.notes||"";
-  oneFillGoalBudgetCategory("fBudgetCategory",r?.budgetCategoryId||"");
+  oneFillGoalBudgetCategory("fBudgetCategory",r?oneGoalBudgetCategory(r):null);
   document.getElementById("reserveDialog").showModal();
 }
 function reserveStatus(r){return r?.status==="archived"?"archived":"active"}
@@ -4438,14 +4438,18 @@ function oneSavingsCategories(){return budgetCategories("Gasto").filter(c=>categ
 function oneSuggestedSavingsCategoryId(){
   return oneSavingsCategories().find(c=>/(ahorro|inversi[oó]n|meta)/i.test(c.name||""))?.id||"";
 }
-function oneGoalBudgetCategory(r){return r?.budgetCategoryId||oneSuggestedSavingsCategoryId()}
+function oneGoalBudgetCategory(r){
+  if(!r)return "";
+  return Object.prototype.hasOwnProperty.call(r,"budgetCategoryId")?r.budgetCategoryId||"":oneSuggestedSavingsCategoryId();
+}
 function oneSavingsBudgetPlanned(rows){
   const linked=new Set((data.reserves||[]).filter(r=>r.type==="goal").map(oneGoalBudgetCategory).filter(Boolean));
   const suggested=oneSuggestedSavingsCategoryId();if(suggested)linked.add(suggested);
   return rows.reduce((sum,p)=>sum+[...linked].reduce((acc,cid)=>acc+periodCategoryBudgetCRC(p,cid,"pay"),0),0);
 }
 function oneContributionCategory(t){
-  return t.budgetCategoryId||oneGoalBudgetCategory((data.reserves||[]).find(r=>r.id===t.reserveId));
+  return Object.prototype.hasOwnProperty.call(t,"budgetCategoryId")?t.budgetCategoryId||"":
+    oneGoalBudgetCategory((data.reserves||[]).find(r=>r.id===t.reserveId));
 }
 function oneBudgetSavingsActual(p,cid,throughDate=""){
   if(!cid)return 0;
@@ -4453,10 +4457,10 @@ function oneBudgetSavingsActual(p,cid,throughDate=""){
     periodKey(periodForDate(t.date)||{})===periodKey(p)&&(!throughDate||t.date<=throughDate))
     .reduce((sum,t)=>sum+reserveTxnHistoricalCRC(t,"pay"),0);
 }
-function oneFillGoalBudgetCategory(id,selected=""){
+function oneFillGoalBudgetCategory(id,selected=null){
   const el=document.getElementById(id);if(!el)return;
   const choices=[{value:"",label:"Sin categoría vinculada"},...oneSavingsCategories().map(c=>({value:c.id,label:c.name}))];
-  fillObjectSelect(el,choices,selected||oneSuggestedSavingsCategoryId());
+  fillObjectSelect(el,choices,selected===null?oneSuggestedSavingsCategoryId():selected);
 }
 function oneGoalMonthsLeft(r,asOf=todayIso()){
   if(!r?.targetDate||!restoreValidDate(r.targetDate)||r.targetDate<=asOf)return 0;
