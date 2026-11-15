@@ -2195,6 +2195,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 </dialog>
 
 <script>
+const ONE_DEFAULT_PAY_DAYS={first:15,second:30};
 "use strict";
 const STORAGE_KEY = "gloriana_one_less_one_data_v2";
 const INTEGRITY_SNAPSHOT_KEY=STORAGE_KEY+"_pre_integrity_fix_v813";
@@ -2388,7 +2389,7 @@ const initialData = {
 };
 
 /* Calendario de salario configurable: la siguiente fecha de pago cierra el ciclo anterior. */
-const ONE_DEFAULT_PAY_DAYS={first:15,second:30};
+
 function onePayDays(settings=null){
   const x=settings?.payDays||ONE_DEFAULT_PAY_DAYS,first=Number(x.first)||ONE_DEFAULT_PAY_DAYS.first,second=Number(x.second)||ONE_DEFAULT_PAY_DAYS.second;
   return first>=1&&first<=27&&second>first&&second<=31?{first,second}:{...ONE_DEFAULT_PAY_DAYS};
