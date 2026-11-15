@@ -1728,17 +1728,18 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
           <div class="form-actions one-move-form-actions"><button class="btn" id="movementSubmitBtn" type="submit">Registrar</button><button class="btn secondary" type="button" id="movementCancelEdit" hidden>Cancelar</button></div>
         </form>
         <form id="oneCentralGoalForm" class="one-central-goal-form" hidden>
-          <p class="one-central-goal-hint">Un aporte traslada dinero de tu saldo operativo a una meta. No crea un gasto ni duplica movimientos.</p>
+          <p class="one-central-goal-hint" id="oneCentralGoalHint">Un aporte pasa dinero de tu saldo operativo a una meta sin registrarlo como gasto.</p>
           <div id="oneCentralGoalEmpty" class="one-central-goal-empty" hidden>
             <p>Primero necesitás una meta activa. Podés crearla sin salir del registro.</p>
             <button class="btn secondary" id="oneCentralCreateGoal" type="button">+ Crear una meta</button>
           </div>
           <div class="field wide"><label for="oneCentralGoalSelect">Meta de ahorro</label><select id="oneCentralGoalSelect" required></select></div>
-          <div class="field wide"><label for="oneCentralGoalCategory">Vincular al presupuesto</label><select id="oneCentralGoalCategory"></select><small class="muted">Seleccioná “Ahorro e inversión” para reflejar el aporte en esa categoría sin crear un gasto.</small></div>
-          <div class="field one-move-amount"><label for="oneCentralGoalAmount">Monto del aporte</label><div class="money-input"><input id="oneCentralGoalAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><select id="oneCentralGoalCurrency" aria-label="Moneda del ahorro"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
+          <div class="field wide"><label for="oneCentralGoalTxnType">Operación</label><select id="oneCentralGoalTxnType"><option value="Aporte">Aportar dinero</option><option value="Retiro a operación">Devolver dinero al saldo operativo</option><option value="Uso objetivo">Usar ahorros para la meta</option></select></div>
+          <div class="field wide" id="oneCentralGoalCategoryField"><label for="oneCentralGoalCategory">Vincular al presupuesto</label><select id="oneCentralGoalCategory"></select><small class="muted">Seleccioná “Ahorro e inversión” para reflejar el aporte en esa categoría sin crear un gasto.</small></div>
+          <div class="field one-move-amount"><label for="oneCentralGoalAmount">Monto</label><div class="money-input"><input id="oneCentralGoalAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><select id="oneCentralGoalCurrency" aria-label="Moneda del ahorro"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
           <div class="field wide"><label for="oneCentralGoalDate">Fecha</label><input id="oneCentralGoalDate" type="date" required></div>
           <div class="field wide"><label for="oneCentralGoalDescription">Descripción (opcional)</label><input id="oneCentralGoalDescription" placeholder="Ej. Aporte quincenal"></div>
-          <div class="form-actions"><button class="btn" id="oneCentralGoalSubmit" type="submit">Registrar ahorro para meta</button></div>
+          <div class="form-actions"><button class="btn" id="oneCentralGoalSubmit" type="submit">Guardar movimiento</button></div>
         </form>
         <div id="oneCentralCobroMount" class="one-central-cobro-mount" hidden>
           <p class="one-central-goal-hint">El cobro pendiente no se cuenta como ingreso. Sus abonos se controlan desde Cobros.</p>
@@ -4536,20 +4537,10 @@ function oneRenderGoalCards(){
 }
 function oneGoalOpenTransaction(reserveId,type="Aporte"){
   const r=(data.reserves||[]).find(x=>x.id===reserveId);
-  if(!r||reserveStatus(r)!=="active")return;
+  if(!r||r.type!=="goal"||reserveStatus(r)!=="active")return;
   navigate("capital");
-  const details=document.getElementById("capitalLegacyDetails");
-  if(details)details.open=true;
-  const date=document.getElementById("rtDate"),amount=document.getElementById("rtAmount");
-  if(date)date.value=todayIso();
-  if(amount)amount.value="";
-  const description=document.getElementById("rtDescription");if(description)description.value="";
-  refreshReserveSelect(reserveId);
-  const typeEl=document.getElementById("rtType"),currency=document.getElementById("rtCurrency");
-  if(typeEl)typeEl.value=type;
-  if(currency)currency.value=normalizeCurrency(r.openingCurrency||displayCurrency());
-  document.getElementById("reserveTxnForm")?.scrollIntoView({behavior:"smooth",block:"center"});
-  amount?.focus({preventScroll:true});
+  m2OpenComposer();
+  oneCentralOpenGoal({reserveId,type});
 }
 function oneRenderGoalBudgetPreview(level,value){
   const slot=document.getElementById("goalBudgetPreview");if(!slot)return;
@@ -6368,17 +6359,34 @@ function oneCentralPrepareGoalList(){
   oneFillGoalBudgetCategory("oneCentralGoalCategory",oneGoalBudgetCategory(goals.find(r=>r.id===select.value)));
   return goals;
 }
-function oneCentralOpenGoal(){
+function oneCentralSyncGoalTxnType(){
+  const type=document.getElementById("oneCentralGoalTxnType").value;
+  document.getElementById("oneCentralGoalCategoryField").hidden=type!=="Aporte";
+  const hint=type==="Aporte"?"El aporte reduce tu saldo operativo y aumenta tu ahorro, sin registrar un gasto.":
+    type==="Retiro a operación"?"El retiro devuelve dinero de la meta al saldo operativo. No es un ingreso nuevo.":
+    "Usar los ahorros reduce el saldo de la meta; registrá una compra aparte solamente si corresponde.";
+  document.getElementById("oneCentralGoalHint").textContent=hint;
+}
+function oneCentralOpenGoal(options={}){
   if(document.getElementById("mEditId")?.value||document.getElementById("mScheduledId")?.value)return;
+  oneCentralRestoreCobroForm();
   const form=document.getElementById("oneCentralGoalForm");
   form.reset();
   oneCentralPrepareGoalList();
+  const selected=typeof options==="object"&&options?.reserveId?options.reserveId:"";
+  if(selected&&[...document.getElementById("oneCentralGoalSelect").options].some(x=>x.value===selected)){
+    document.getElementById("oneCentralGoalSelect").value=selected;
+    oneFillGoalBudgetCategory("oneCentralGoalCategory",oneGoalBudgetCategory(data.reserves.find(r=>r.id===selected)));
+  }
+  document.getElementById("oneCentralGoalTxnType").value=
+    ["Aporte","Retiro a operación","Uso objetivo"].includes(options?.type)?options.type:"Aporte";
+  oneCentralSyncGoalTxnType();
   document.getElementById("oneCentralGoalDate").value=todayIso();
   document.getElementById("oneCentralGoalCurrency").value=displayCurrency();
   document.getElementById("movementForm").hidden=true;
   document.getElementById("movementSplitToggle").hidden=true;
   form.hidden=false;
-  document.getElementById("movementComposerTitle").textContent="Registrar ahorro para meta";
+  document.getElementById("movementComposerTitle").textContent="Movimiento de meta";
   document.querySelectorAll("[data-m2-type],[data-one-action]").forEach(b=>{
     const active=b.dataset.oneAction==="goal";
     b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
@@ -6412,7 +6420,8 @@ function oneCentralSaveGoal(event){
   if(!Number.isFinite(amount)||amount<=0)return alert("El aporte debe ser mayor que cero.");
   const candidate={
     id:id(),reserveId,date:document.getElementById("oneCentralGoalDate").value,
-    type:"Aporte",amount,currency:normalizeCurrency(document.getElementById("oneCentralGoalCurrency").value),budgetCategoryId:document.getElementById("oneCentralGoalCategory").value,
+    type:document.getElementById("oneCentralGoalTxnType").value,amount,currency:normalizeCurrency(document.getElementById("oneCentralGoalCurrency").value),
+    budgetCategoryId:document.getElementById("oneCentralGoalTxnType").value==="Aporte"?document.getElementById("oneCentralGoalCategory").value:"",
     ...currentFxSnapshot(),description:document.getElementById("oneCentralGoalDescription").value.trim(),
     createdAt:new Date().toISOString()
   };
@@ -6423,7 +6432,7 @@ function oneCentralSaveGoal(event){
   if(!oneModuleEnabled("capital"))oneSetModuleEnabled("capital",true);
   m2ResetComposer();
   renderMovements();renderDashboard();renderPlan();renderCapital();
-  oneCentralNotify("Aporte de "+originalMoney(amount,candidate.currency)+" guardado en la meta “"+fund.name+"”. Es una transferencia interna, no un gasto.");
+  oneCentralNotify(candidate.type+" de "+originalMoney(amount,candidate.currency)+" guardado en “"+fund.name+"”. No se creó un gasto ni un ingreso ficticio.");
 }
 
 function oneInitPaydayControls(){
@@ -6463,6 +6472,7 @@ function initMovements2(){
   document.querySelector('[data-one-action="goal"]')?.addEventListener("click",oneCentralOpenGoal);
   document.querySelector('[data-one-action="cobro"]')?.addEventListener("click",oneCentralOpenCobro);
   document.getElementById("oneCentralGoalForm")?.addEventListener("submit",oneCentralSaveGoal);
+  document.getElementById("oneCentralGoalTxnType")?.addEventListener("change",oneCentralSyncGoalTxnType);
   document.getElementById("oneCentralGoalSelect")?.addEventListener("change",e=>{
     oneFillGoalBudgetCategory("oneCentralGoalCategory",oneGoalBudgetCategory(data.reserves.find(r=>r.id===e.target.value)));
   });
