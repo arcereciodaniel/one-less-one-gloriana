@@ -7,6 +7,7 @@ on:
       - tests/movimientos-integrados.test.cjs
       - tests/quincenas-metas-presupuesto.test.cjs
       - tests/formularios-v8.test.cjs
+      - tests/tipo-cambio-deudas-v9.test.cjs
       - .github/workflows/metas-render.yml
   workflow_dispatch:
 jobs:
@@ -22,3 +23,4 @@ jobs:
       - run: node tests/movimientos-integrados.test.cjs
       - run: node tests/quincenas-metas-presupuesto.test.cjs
       - run: node tests/formularios-v8.test.cjs
+      - run: node tests/tipo-cambio-deudas-v9.test.cjs
