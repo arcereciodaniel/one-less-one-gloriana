@@ -6446,7 +6446,7 @@ renderDebts=function(){
 
   const currentMonth=todayIso().slice(0,7);
   const paidMonth=(data.movements||[]).filter(m=>m.type==="Pago deuda"&&v7MonthKey(m.date)===currentMonth).reduce((s,m)=>s+movementAmountCRC(m),0);
-  const upcoming=oneDebtUpcomingEntries().find(x=>x.date&&x.minimum>0);
+  const upcoming=oneDebtUpcomingEntries().find(x=>x.date>=todayIso()&&x.minimum>0);
   const structured=active.filter(d=>d.type==="Préstamo"||d.type==="Familiar").reduce((sum,d)=>sum+debtOutstanding(d),0);
   const revolving=active.filter(d=>d.type==="Tarjeta").reduce((sum,d)=>sum+debtOutstanding(d),0);
   document.getElementById("debtKpis").innerHTML=[
