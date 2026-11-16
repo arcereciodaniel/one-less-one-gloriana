@@ -74,7 +74,7 @@ assert.equal(saved.sharedCharges.length,1);
 assert.equal(saved.sharedCharges[0].dueDate,"","La ausencia de fecha se debe respetar");
 assert.equal(saved.sharedCharges[0].status,"pending");
 assert.equal(saved.movements.length,0,"Un cobro pendiente no es un ingreso");
-assert.equal(w.eval('cobroReminderStart(data.sharedCharges[0])'),"9999-12-31","Sin fecha no debe generar recordatorios");
+assert.equal(w.cobroReminderStart(saved.sharedCharges[0]),"9999-12-31","Sin fecha no debe generar recordatorios");
 assert(root.getElementById("sharedChargeDialog").contains(root.getElementById("sharedChargeForm")));
 
 // Recurrencia: pedir fecha esperada en lugar de generar un vencimiento implícito.
