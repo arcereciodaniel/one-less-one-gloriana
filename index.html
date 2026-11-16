@@ -2196,6 +2196,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 <button class="dialog-close" type="button" aria-label="Cerrar">×</button>
     <h2>Tipo de cambio del día</h2>
     <p class="muted">One Less One usa compra y venta para valorar correctamente dólares por cobrar, deudas, metas y movimientos. El selector CRC/USD solo cambia la visualización; nunca reescribe el monto original.</p>
+    <p id="fxAutoStatus" class="muted" role="status">Se consulta automáticamente la referencia de Hacienda; podés editar los valores manualmente si tu banco aplica otra tasa.</p>
     <form id="fxForm">
       <div class="fx-grid">
         <div class="field"><label>Fecha</label><input id="fxDate" type="date" required></div>
@@ -2205,6 +2206,7 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
       <div class="fx-help" style="margin-top:12px"><strong>Compra:</strong> cuánto recibes en colones cuando entregas dólares. <strong>Venta:</strong> cuánto te cuesta comprar dólares con colones. Para la visualización general One Less One usa el punto medio entre ambos.</div>
       <div class="fx-history" id="fxHistoryList"></div>
       <div class="dialog-actions">
+        <button type="button" class="btn secondary" id="fxFetchNowBtn">Consultar Hacienda</button>
         <button type="button" class="btn secondary" id="useLastFxBtn">Usar último registrado</button>
         <button type="submit" class="btn">Guardar tipo de cambio</button>
       </div>
@@ -2481,6 +2483,7 @@ function canonicalPaymentDate(budgetMonth,fortnight,settings=null){
   const d=onePayDays(settings);
   return Number(fortnight)===1?oneDateMonthDay(oneMonthShift(budgetMonth,-1),d.second):oneDateMonthDay(budgetMonth,d.first);
 }
+function restoreValidDateSafeFxCheck(value){return typeof value==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(value)}
 function migrateData(raw){
   raw=raw&&typeof raw==="object"?raw:clone(initialData);
   const incomingVersion=num(raw.version);
@@ -2490,6 +2493,8 @@ function migrateData(raw){
   raw.settings.fxBuy=num(raw.settings.fxBuy)||legacyFx;
   raw.settings.fxSell=num(raw.settings.fxSell)||legacyFx;
   raw.settings.fxDate=raw.settings.fxDate||"";
+  raw.settings.fxSource=["hacienda","bccr_mirror"].includes(raw.settings.fxSource)?raw.settings.fxSource:"manual";
+  raw.settings.fxCheckedOn=restoreValidDateSafeFxCheck(raw.settings.fxCheckedOn)?raw.settings.fxCheckedOn:"";
   raw.settings.fxHistory=Array.isArray(raw.settings.fxHistory)?raw.settings.fxHistory.filter(x=>x&&x.date).map(x=>({date:x.date,buy:num(x.buy),sell:num(x.sell)})):[];
   raw.settings.displayCurrency=normalizeCurrency(raw.settings.displayCurrency||"CRC");
   raw.settings.payDays=onePayDays(raw.settings);
@@ -3078,28 +3083,107 @@ function renderFxHistory(){
   box.innerHTML=rows.length?`<table><thead><tr><th>Fecha</th><th>Compra</th><th>Venta</th><th>Referencia</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${dateLabel(x.date)}</td><td class="num">₡${num(x.buy).toLocaleString("es-CR",{maximumFractionDigits:2})}</td><td class="num">₡${num(x.sell).toLocaleString("es-CR",{maximumFractionDigits:2})}</td><td class="num">₡${((num(x.buy)+num(x.sell))/2).toLocaleString("es-CR",{maximumFractionDigits:2})}</td></tr>`).join("")}</tbody></table>`:`<div class="empty" style="padding:12px">Aún no hay historial de tipos de cambio.</div>`;
 }
 function updateCurrencyHeader(){
-  const c=displayCurrency();document.querySelectorAll("[data-display-currency]").forEach(b=>b.classList.toggle("active",b.dataset.displayCurrency===c));
-  const r=currentRates(),btn=document.getElementById("fxBtn");if(btn){
-    const confirmed=!!data.settings.fxDate&&num(data.settings.fxBuy)>0&&num(data.settings.fxSell)>0;
-    btn.textContent=confirmed?`TC ${data.settings.fxDate.slice(5)} · C ₡${r.buy.toFixed(2)} / V ₡${r.sell.toFixed(2)}`:`TC aprox. ₡${r.ref.toFixed(2)} · sin confirmar`;
-    btn.title=confirmed?"Actualizar tipo de cambio":"Tipo de cambio provisional para cálculos en USD. Registrá la compra y venta reales.";
-  }
+  const c=displayCurrency();
+  document.querySelectorAll("[data-display-currency]").forEach(b=>b.classList.toggle("active",b.dataset.displayCurrency===c));
+  const r=currentRates(),btn=document.getElementById("fxBtn");
+  if(!btn)return;
+  const confirmed=!!data.settings.fxDate&&num(data.settings.fxBuy)>0&&num(data.settings.fxSell)>0;
+  const source=data.settings.fxSource==="hacienda"?" · Hacienda":data.settings.fxSource==="bccr_mirror"?" · BCCR":data.settings.fxSource==="manual"?" · Manual":"";
+  btn.textContent=confirmed?"TC "+data.settings.fxDate.slice(5)+" · C ₡"+r.buy.toFixed(2)+" / V ₡"+r.sell.toFixed(2)+source:"TC aprox. ₡"+r.ref.toFixed(2)+" · sin confirmar";
+  btn.title=confirmed?"Compra y venta en CRC/USD · "+(data.settings.fxSource==="hacienda"?"referencia de Hacienda":data.settings.fxSource==="bccr_mirror"?"referencia BCCR por fuente alternativa":"tasa registrada manualmente")+". Presioná para consultar o editar.":"Se utilizará el último dato disponible; presioná para configurarlo.";
 }
+
 function openFxDialog(forceToday=true){
   const dialog=document.getElementById("fxDialog"),r=currentRates();
   document.getElementById("fxDate").value=forceToday?todayIso():(data.settings.fxDate||todayIso());
   document.getElementById("fxBuy").value=r.buy||"";document.getElementById("fxSell").value=r.sell||"";
   const useLast=document.getElementById("useLastFxBtn");if(useLast)useLast.disabled=!(r.buy>0&&r.sell>0);
-  renderFxHistory();dialog.showModal();
+  renderFxHistory();if(typeof dialog?.showModal==="function")dialog.showModal();
 }
-function saveFxRate(date,buy,sell){
-  if(!(buy>0&&sell>0))return false;
-  if(sell<buy){alert("El tipo de cambio de venta normalmente debe ser igual o mayor que el de compra. Revisa los valores.");return false}
+function saveFxRate(date,buy,sell,source="manual",checkedOn=todayIso()){
+  if(!(buy>0&&sell>0)||!restoreValidDate(date))return false;
+  if(sell<buy){alert("El tipo de cambio de venta normalmente debe ser igual o mayor que el de compra. Revisá los valores.");return false;}
   data.settings.fxBuy=buy;data.settings.fxSell=sell;data.settings.fx=(buy+sell)/2;data.settings.fxDate=date;
+  data.settings.fxSource=["hacienda","bccr_mirror"].includes(source)?source:"manual";
+  data.settings.fxCheckedOn=checkedOn;
   data.settings.fxHistory=Array.isArray(data.settings.fxHistory)?data.settings.fxHistory:[];
-  const i=data.settings.fxHistory.findIndex(x=>x.date===date),row={date,buy,sell};i>=0?data.settings.fxHistory[i]=row:data.settings.fxHistory.push(row);
+  const i=data.settings.fxHistory.findIndex(x=>x.date===date),row={date,buy,sell,source:data.settings.fxSource};
+  if(i>=0)data.settings.fxHistory[i]=row;else data.settings.fxHistory.push(row);
   save();updateCurrencyHeader();return true;
 }
+// La fuente pública no necesita credenciales ni servicios intermedios. Nunca modifica conversiones históricas.
+let oneFxPending=null;
+function oneFxStatus(message){
+  const slot=document.getElementById("fxAutoStatus");
+  if(slot)slot.textContent=message;
+}
+async function oneFxAutoUpdate(force=false){
+  const today=todayIso(),existing=data.settings;
+  if(!force&&(existing.fxCheckedOn===today||(existing.fxSource==="manual"&&existing.fxDate===today)))return true;
+  if(oneFxPending)return oneFxPending;
+  oneFxStatus("Consultando compra y venta en Hacienda…");
+  const task=(async()=>{
+    let timer=null;
+    try{
+      if(typeof fetch!=="function")throw Error("Servicio de red no disponible");
+      const controller=typeof AbortController==="function"?new AbortController():null;
+      if(controller)timer=setTimeout(()=>controller.abort(),8000);
+      const providers=[
+        {source:"hacienda",url:"https://api.hacienda.go.cr/indicadores/tc/dolar"},
+        // Solo ante un fallo de Hacienda: espejo BCCR con CORS público y sin credenciales.
+        {source:"bccr_mirror",url:"https://tipodecambio.paginasweb.cr/api"}
+      ];
+      let quote=null,lastError="";
+      for(const provider of providers){
+        try{
+          const response=await fetch(provider.url,{
+            method:"GET",cache:"no-store",headers:{"Accept":"application/json"},
+            ...(controller?{signal:controller.signal}:{})
+          });
+          if(!response.ok)throw Error("Respuesta HTTP "+response.status);
+          const payload=await response.json();
+          let buy,sell,date;
+          if(provider.source==="hacienda"){
+            buy=Number(payload?.compra?.valor);sell=Number(payload?.venta?.valor);
+            date=payload?.compra?.fecha;
+            if(date!==payload?.venta?.fecha)throw Error("Fechas de compra y venta no coinciden");
+          }else{
+            buy=Number(payload?.compra);sell=Number(payload?.venta);
+            const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(payload?.fecha||""));
+            date=match?match[3]+"-"+match[2]+"-"+match[1]:"";
+          }
+          const earliest=oneShiftDate(today,-7);
+          if(!restoreValidDate(date)||date>today||date<earliest||
+            !Number.isFinite(buy)||!Number.isFinite(sell)||buy<100||buy>2000||sell<buy||sell>2100)
+            throw Error("Datos de cambio no válidos o desactualizados");
+          quote={buy,sell,date,source:provider.source};
+          break;
+        }catch(error){lastError=String(error?.message||error);}
+      }
+      if(!quote)throw Error(lastError||"Fuentes no disponibles");
+      const {buy,sell,date,source}=quote;
+      // Si el usuario introdujo su tasa del día mientras consultábamos, no sustituirla.
+      if(!force&&data.settings.fxSource==="manual"&&
+        data.settings.fxCheckedOn===today){oneFxStatus("Se conserva la tasa manual seleccionada para hoy.");return true;}
+      if(!saveFxRate(date,buy,sell,source,today))throw Error("No se pudieron guardar las tasas");
+      oneFxStatus((source==="hacienda"?"Referencia Hacienda":"Referencia BCCR (fuente alternativa)")+" del "+date+" · compra ₡"+buy.toFixed(2)+" · venta ₡"+sell.toFixed(2)+". Podés editarla manualmente si utilizás la cotización de tu banco.");
+      const dialog=document.getElementById("fxDialog");
+      if(dialog?.open){
+        if(force){document.getElementById("fxDate").value=date;document.getElementById("fxBuy").value=buy;document.getElementById("fxSell").value=sell;}
+        renderFxHistory();
+      }else renderActiveView();
+      return true;
+    }catch(error){
+      oneFxStatus("No se pudo consultar Hacienda ni la fuente alternativa. Se conserva la última tasa registrada; podés introducirla manualmente.");
+      updateCurrencyHeader();
+      if(!data.settings.fxDate&&!document.getElementById("fxDialog")?.open)openFxDialog(true);
+      return false;
+    }finally{if(timer!==null)clearTimeout(timer);}
+  })();
+  oneFxPending=task;
+  try{return await task;}finally{oneFxPending=null;}
+}
+
 function needsDailyFx(){const r=currentRates();return data.settings.fxDate!==todayIso()||!(r.buy>0&&r.sell>0)}
 // Una tasa guardada continúa disponible al refrescar aunque la fecha sea anterior.
 // La fecha sigue visible en el encabezado para actualizarla manualmente.
@@ -5287,6 +5371,7 @@ function bind(){
   updateCurrencyHeader();
   document.querySelectorAll("[data-display-currency]").forEach(btn=>btn.addEventListener("click",()=>{data.settings.displayCurrency=normalizeCurrency(btn.dataset.displayCurrency);save();renderActiveView()}));
   document.getElementById("fxBtn").addEventListener("click",()=>openFxDialog(true));
+  document.getElementById("fxFetchNowBtn").addEventListener("click",()=>{oneFxAutoUpdate(true)});
   document.getElementById("fxForm").addEventListener("submit",e=>{e.preventDefault();const date=document.getElementById("fxDate").value,buy=num(document.getElementById("fxBuy").value),sell=num(document.getElementById("fxSell").value);if(saveFxRate(date,buy,sell)){document.getElementById("fxDialog").close();renderActiveView()}});
   document.getElementById("useLastFxBtn").addEventListener("click",()=>{document.getElementById("fxDialog").close();updateCurrencyHeader()});
 
@@ -6266,28 +6351,51 @@ function oneDebtShiftMonth(month,shift=1){
   const [year,number]=month.split("-").map(Number);
   return new Date(Date.UTC(year,number-1+shift,1)).toISOString().slice(0,7);
 }
-function oneDebtRegisteredThisMonth(d,month,asOf=todayIso()){
-  return (data.movements||[]).filter(m=>m.type==="Pago deuda"&&m.date<=asOf&&String(m.date||"").slice(0,7)===month&&(m.debtId?m.debtId===d.id:m.debt===d.name))
+// Un pago anterior al vencimiento cubre su ciclo aunque se registre en el mes previo.
+function oneDebtRegisteredForCycle(d,due,asOf=todayIso()){
+  if(!due)return 0;
+  const month=due.slice(0,7),previous=oneDebtMonthlyDueIso(d,oneDebtShiftMonth(month,-1));
+  if(!previous)return 0;
+  return (data.movements||[]).filter(m=>m.type==="Pago deuda"&&m.date>previous&&m.date<=asOf&&
+    (m.debtId?m.debtId===d.id:m.debt===d.name))
     .reduce((sum,m)=>sum+movementAmountCRC(m),0);
 }
 function oneDebtDueEntry(d,asOf=todayIso()){
   const outstanding=debtOutstanding(d);
   if(debtStatus(d)!=="active"||outstanding<=.005)return null;
   const minimum=Math.min(Math.max(0,debtMinimumCRC(d)),outstanding);
-  const month=asOf.slice(0,7),thisDue=oneDebtMonthlyDueIso(d,month);
-  if(!thisDue)return {debt:d,date:"",minimum,state:"undated",paid:0,coveredThisMonth:false};
-  if(minimum<=0)return {debt:d,date:thisDue,minimum:0,state:"no-minimum",paid:0,coveredThisMonth:false};
-  const paid=oneDebtRegisteredThisMonth(d,month,asOf);
-  const coveredThisMonth=paid+.005>=minimum;
-  const date=coveredThisMonth?oneDebtMonthlyDueIso(d,oneDebtShiftMonth(month)):thisDue;
-  // La cuota de este mes puede estar cubierta, pero la próxima sigue siendo
-  // un compromiso real dentro de una ventana móvil de 30 días.
-  const state=date<asOf?"past":date===asOf?"today":"upcoming";
-  return {debt:d,date,minimum,state,paid,coveredThisMonth};
+  const month=asOf.slice(0,7);
+  let due=oneDebtMonthlyDueIso(d,month);
+  if(!due)return {debt:d,date:"",minimum,state:"undated",paid:0,coveredThisMonth:false};
+  if(minimum<=0)return {debt:d,date:due,minimum:0,state:"no-minimum",paid:0,coveredThisMonth:false};
+  let coveredThisMonth=false;
+  for(let offset=0;offset<12;offset++){
+    const paid=oneDebtRegisteredForCycle(d,due,asOf);
+    const remaining=Math.max(0,minimum-paid);
+    if(remaining<=.005){
+      if(offset===0)coveredThisMonth=true;
+      due=oneDebtMonthlyDueIso(d,oneDebtShiftMonth(due.slice(0,7),1));
+      continue;
+    }
+    const state=paid>0?(due<asOf?"review":"partial"):(due<asOf?"past":due===asOf?"today":"upcoming");
+    return {debt:d,date:due,minimum:remaining,fullMinimum:minimum,state,paid,coveredThisMonth};
+  }
+  return {debt:d,date:due,minimum,fullMinimum:minimum,state:"upcoming",paid:0,coveredThisMonth};
 }
+
 function oneDebtUpcomingEntries(asOf=todayIso()){
   return activeDebts().map(d=>oneDebtDueEntry(d,asOf)).filter(Boolean)
     .sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||num(a.debt.priority)-num(b.debt.priority));
+}
+function oneDebtClassificationWarnings(){
+  const byId=new Map((data.categories||[]).map(c=>[c.id,c]));
+  const mismatch=(data.movements||[]).filter(m=>{
+    const type=byId.get(m.categoryId)?.type;
+    return type&&["Gasto","Pago deuda"].includes(m.type)&&type!==m.type;
+  }).length;
+  const orphan=(data.movements||[]).filter(m=>m.type==="Pago deuda"&&
+    !(data.debts||[]).some(d=>m.debtId?d.id===m.debtId:d.name===m.debt)).length;
+  return {mismatch,orphan};
 }
 function oneDebtRenderDueSchedule(asOf=todayIso()){
   const summary=document.getElementById("debtDueSummary"),list=document.getElementById("debtDueList");
@@ -6296,13 +6404,29 @@ function oneDebtRenderDueSchedule(asOf=todayIso()){
   const relevant=entries.filter(x=>x.date&&x.minimum>0&&x.date<=upper);
   const total=relevant.reduce((sum,x)=>sum+x.minimum,0);
   const unknown=entries.filter(x=>!x.date||!x.minimum).length;
-  summary.innerHTML=`<span>Cuotas vencidas y de los próximos 30 días${unknown?` · ${unknown} sin datos completos`:""}</span><strong>${money(total)}</strong>`;
+  summary.innerHTML="<span>Cuotas estimadas de los próximos 30 días y diferencias por verificar"+
+    (unknown?" · "+unknown+" sin datos completos":"")+"</span><strong>"+money(total)+"</strong>";
   const visible=entries.filter(x=>x.date&&x.minimum>0).slice(0,5);
   list.innerHTML=visible.length?visible.map(x=>{
-    const meta=x.state==="past"?"Fecha pasada · revisá si ya pagaste":x.state==="today"?"Programado para hoy":x.coveredThisMonth?"Mes actual cubierto según Movimientos · "+dateLabel(x.date):"Fecha estimada · "+dateLabel(x.date);
-    return `<div class="one-debt-due-row"><div><div class="one-due-name">${v7SafeText(x.debt.name)}</div><div class="one-due-meta">${meta}</div></div><div class="one-due-amount">${money(x.minimum)}<small>Cuota / mínimo</small></div></div>`;
-  }).join(""):`<p class="one-debt-due-note">${entries.length?"No hay cuotas pendientes con fecha y mínimo configurados.":"Todavía no tenés deudas activas."}</p>`;
-  if(unknown)list.insertAdjacentHTML("beforeend",`<p class="one-debt-due-note">Para completar el seguimiento, revisá el día de pago y la cuota mínima de tus deudas.</p>`);
+    const payment=x.paid>0?"Abonos: "+money(x.paid)+" · ":"";
+    const meta=x.state==="review"?payment+"Diferencia con mínimo: "+money(x.minimum)+" · verificar con el banco":
+      x.state==="partial"?payment+"Saldo estimado para esta cuota: "+money(x.minimum):
+      x.state==="past"?"Fecha pasada sin pago vinculado · revisá el estado de cuenta":
+      x.state==="today"?"Programado para hoy":
+      x.coveredThisMonth?"Cuota anterior cubierta · próximo vencimiento "+dateLabel(x.date):
+      "Fecha estimada · "+dateLabel(x.date);
+    const label=x.state==="review"?"Por verificar":x.state==="partial"?"Saldo estimado":"Cuota / mínimo";
+    return '<div class="one-debt-due-row"><div><div class="one-due-name">'+v7SafeText(x.debt.name)+
+      '</div><div class="one-due-meta">'+meta+'</div></div><div class="one-due-amount">'+money(x.minimum)+
+      '<small>'+label+'</small></div></div>';
+  }).join(""):'<p class="one-debt-due-note">'+(entries.length?
+    "No hay cuotas pendientes con fecha y mínimo configurados.":"Todavía no tenés deudas activas.")+"</p>";
+  if(unknown)list.insertAdjacentHTML("beforeend",'<p class="one-debt-due-note">Revisá el día de pago y mínimo de las deudas sin información completa.</p>');
+  const quality=oneDebtClassificationWarnings();
+  if(quality.mismatch||quality.orphan)list.insertAdjacentHTML("beforeend",
+    '<p class="one-debt-due-note">Revisión de historial: '+quality.mismatch+
+    ' movimiento(s) con categoría distinta de su tipo y '+quality.orphan+
+    ' pago(s) sin deuda vinculada. No se modificaron registros.</p>');
 }
 
 renderDebts=function(){
@@ -6662,7 +6786,7 @@ function initDebtBalanceReconciliation(){
  save();close();renderDebts();renderDashboard();renderCapital();renderPlan();
  });
 }
-bind();initDebtBalanceReconciliation();bindReportStudio();initV7();initR8();initMovements2();initGoalsBeta();initUiPreferences();initLiquidityChartInteraction();initModulesBeta();initDataIntegrityNotice();initOneGlorianaMigrationNotice();navigate(uiState.activeView||"dashboard");updateCurrencyHeader();setTimeout(()=>{if(oneShouldPromptFxOnLaunch())openFxDialog(true)},80);
+bind();initDebtBalanceReconciliation();bindReportStudio();initV7();initR8();initMovements2();initGoalsBeta();initUiPreferences();initLiquidityChartInteraction();initModulesBeta();initDataIntegrityNotice();initOneGlorianaMigrationNotice();navigate(uiState.activeView||"dashboard");updateCurrencyHeader();oneFxAutoUpdate();
 </script>
 </body>
 </html>
