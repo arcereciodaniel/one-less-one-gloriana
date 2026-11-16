@@ -1,4 +1,4 @@
-name: Diagnosticar vista Metas
+name: Validar One Less One
 on:
   push:
     paths:
@@ -6,6 +6,7 @@ on:
       - tests/metas-render.test.cjs
       - tests/movimientos-integrados.test.cjs
       - tests/quincenas-metas-presupuesto.test.cjs
+      - tests/formularios-v8.test.cjs
       - .github/workflows/metas-render.yml
   workflow_dispatch:
 jobs:
@@ -20,3 +21,4 @@ jobs:
       - run: node tests/metas-render.test.cjs
       - run: node tests/movimientos-integrados.test.cjs
       - run: node tests/quincenas-metas-presupuesto.test.cjs
+      - run: node tests/formularios-v8.test.cjs
