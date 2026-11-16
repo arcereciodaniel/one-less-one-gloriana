@@ -2528,7 +2528,7 @@ function migrateData(raw){
     g.closedReason=g.status==="archived"?(g.closedReason||"Grupo finalizado"):"";
     delete g.archived;
   });
-  raw.sharedCharges.forEach(c=>{c.id=c.id||id();c.groupId=c.groupId||"";c.person=c.person||"";c.date=c.date||todayIso();c.dueDate=c.dueDate||c.date;c.payments=Array.isArray(c.payments)?c.payments:[];c.payments.forEach(p=>{p.id=p.id||id();p.date=p.date||c.date;p.amount=Math.max(0,num(p.amount));p.note=p.note||""});c.remindBeforeDays=Math.max(0,Math.min(30,num(c.remindBeforeDays??3)));c.snoozedUntil=c.snoozedUntil||"";c.chargeMonth=c.chargeMonth||monthKey(c.date);c.kind=c.kind||"Uso / consumo";c.description=c.description||"";c.amount=num(c.amount);c.currency=normalizeCurrency(c.currency||"CRC");c.fxBuy=num(c.fxBuy);c.fxSell=num(c.fxSell);c.fxRef=num(c.fxRef);c.fxDate=c.fxDate||"";c.status=c.status==="paid"?"paid":"pending";c.paidAt=c.status==="paid"?(c.paidAt||c.date):"";c.notes=c.notes||"";c.sourceRecurringId=c.sourceRecurringId||""});
+  raw.sharedCharges.forEach(c=>{c.id=c.id||id();c.groupId=c.groupId||"";c.person=c.person||"";c.date=c.date||todayIso();c.dueDate=c.dueDate===undefined||c.dueDate===null?c.date:c.dueDate;c.payments=Array.isArray(c.payments)?c.payments:[];c.payments.forEach(p=>{p.id=p.id||id();p.date=p.date||c.date;p.amount=Math.max(0,num(p.amount));p.note=p.note||""});c.remindBeforeDays=Math.max(0,Math.min(30,num(c.remindBeforeDays??3)));c.snoozedUntil=c.snoozedUntil||"";c.chargeMonth=c.chargeMonth||monthKey(c.date);c.kind=c.kind||"Uso / consumo";c.description=c.description||"";c.amount=num(c.amount);c.currency=normalizeCurrency(c.currency||"CRC");c.fxBuy=num(c.fxBuy);c.fxSell=num(c.fxSell);c.fxRef=num(c.fxRef);c.fxDate=c.fxDate||"";c.status=c.status==="paid"?"paid":"pending";c.paidAt=c.status==="paid"?(c.paidAt||c.date):"";c.notes=c.notes||"";c.sourceRecurringId=c.sourceRecurringId||""});
   raw.receivableRecurring.forEach(t=>{t.id=t.id||id();t.groupId=t.groupId||"";t.person=t.person||"";t.startMonth=t.startMonth||todayIso().slice(0,7);t.endMonth=t.endMonth||"";t.day=Math.max(1,Math.min(31,num(t.day)||1));t.reminderDay=Math.max(1,Math.min(31,num(t.reminderDay)||t.day));t.remindBeforeDays=Math.max(0,Math.min(30,num(t.remindBeforeDays??3)));t.kind=t.kind||"Suscripción";t.description=t.description||"";t.amount=num(t.amount);t.currency=normalizeCurrency(t.currency||"CRC");t.notes=t.notes||""});
 
   // Ciclo de vida de deudas (v5.1): una deuda archivada conserva su historial,
@@ -4136,6 +4136,12 @@ function deleteSharedGroup(group){
   data.sharedChargeGroups=(data.sharedChargeGroups||[]).filter(g=>g.id!==group.id);
   sharedSelectedChargeIds.clear();save();refreshSharedGroupSelects();renderSharedCharges();
 }
+function oneSyncCobroReminderField(){
+  const hasDate=!!document.getElementById("scDueDate")?.value;
+  const field=document.getElementById("scReminderField");
+  if(field)field.hidden=!hasDate;
+  if(!hasDate)document.getElementById("scReminderDays").value="0";
+}
 function openSharedCharge(c=null,preferredGroupId="",options={}){
   document.getElementById("sharedChargeDialogTitle").textContent=c?"Editar cobro":"Agregar cobro";
   if(!c&&preferredGroupId){const g=sharedGroupById(preferredGroupId);if(g&&sharedGroupStatus(g)==="archived")return alert("Ese grupo está archivado. Reactívalo para agregar nuevos cobros.");}
@@ -4146,8 +4152,8 @@ function openSharedCharge(c=null,preferredGroupId="",options={}){
   document.getElementById("scPerson").value=c?.person||group?.person||"";
   document.getElementById("scMonth").value=c?.chargeMonth||selectedMonth;
   document.getElementById("scDate").value=c?.date||todayIso();
-  document.getElementById("scDueDate").value=c?.dueDate||c?.date||todayIso();
-  document.getElementById("scReminderDays").value=String(c?.remindBeforeDays??3);
+  document.getElementById("scDueDate").value=c?c.dueDate||"":"";
+  document.getElementById("scReminderDays").value=String(c?.remindBeforeDays??0);
   document.getElementById("scKind").value=c?.kind||"Uso / consumo";
   document.getElementById("scDescription").value=c?.description||"";
   document.getElementById("scAmount").value=num(c?.amount);
@@ -4155,6 +4161,8 @@ function openSharedCharge(c=null,preferredGroupId="",options={}){
   document.getElementById("scStatus").value=c?.status||"pending";
   document.getElementById("scRecurring").checked=recurring;
   document.getElementById("scNotes").value=c?.notes||"";
+  document.getElementById("scAdvanced").open=!!(c&&(c.groupId||c.sourceRecurringId||c.notes));
+  oneSyncCobroReminderField();
   if(!options.inline)document.getElementById("sharedChargeDialog").showModal();
 }
 
@@ -4184,7 +4192,8 @@ function recordCobroPayment(c,amount,date,note=""){
 }
 function cobroPerson(c){return String(c.person||sharedGroupById(c.groupId)?.person||"Sin persona").trim()||"Sin persona"}
 function cobroReminderStart(c){
- const due=c.dueDate||c.date||todayIso(),days=Math.max(0,Math.min(30,num(c.remindBeforeDays??3)));
+ if(!c.dueDate)return "9999-12-31";
+  const due=c.dueDate,days=Math.max(0,Math.min(30,num(c.remindBeforeDays??0)));
  const early=addDaysIso(due,-days);
  return c.snoozedUntil&&c.snoozedUntil>early?c.snoozedUntil:early;
 }
@@ -4332,7 +4341,7 @@ function cobroPeopleCards(rows,month){
  rows.forEach(c=>{const name=cobroPerson(c),key=name.toLocaleLowerCase("es");if(!people.has(key))people.set(key,{name,charges:[]});people.get(key).charges.push(c)});
  return [...people.values()].sort((a,b)=>a.name.localeCompare(b.name,"es")).map(person=>{
   const pending=person.charges.reduce((s,c)=>s+cobroRemainingCRC(c),0),received=person.charges.reduce((s,c)=>s+cobroReceivedCRC(c),0);
-  const next=person.charges.filter(c=>cobroRemainingOriginal(c)>.005).map(c=>c.dueDate||c.date).sort()[0];
+  const next=person.charges.filter(c=>cobroRemainingOriginal(c)>.005).map(c=>c.dueDate).filter(Boolean).sort()[0];
   const groups=new Map();
   person.charges.forEach(c=>{const key=c.groupId||"",name=sharedGroupById(key)?.name||"Sin grupo";if(!groups.has(key))groups.set(key,{name,rows:[]});groups.get(key).rows.push(c)});
   return `<article class="one-person-card"><div class="one-person-head"><div><strong>${safe(person.name)}</strong><small>${person.charges.length} cobros${next?" · Próximo "+dateLabel(next):""}</small></div><div class="one-person-totals"><span>Recibido <b>${money(received)}</b></span><span>Pendiente <b>${money(pending)}</b></span></div></div>${[...groups.values()].map(g=>`<details class="one-person-group" open><summary>${safe(g.name)} <small>${money(g.rows.reduce((s,c)=>s+cobroRemainingCRC(c),0))} pendiente</small></summary>${receivableRowsTable(g.rows,"people",month)}</details>`).join("")}</article>`;
@@ -4367,7 +4376,7 @@ function receivableRowsTable(rows,sectionKey="",month=selectedReceivableMonth())
  return `<div class="table-wrap"><table><thead><tr><th>${head}</th><th>Fecha</th><th>Persona</th><th>Concepto</th><th>Total</th><th>Abonado</th><th>Restante</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${rows.length?rows.map(c=>{
   const carry=isReceivableCarryover(c,month),origin=c.chargeMonth||monthKey(c.date),left=cobroRemainingOriginal(c);
   return `<tr><td><input class="charge-check" type="checkbox" data-select-shared="${safe(c.id)}" ${sharedSelectedChargeIds.has(c.id)?"checked":""} aria-label="Seleccionar cobro"></td>
-  <td>${dateLabel(c.date)}<br><small class="muted">Cobrar: ${dateLabel(c.dueDate||c.date)}</small>${carry?`<br><span class="overdue-badge">Arrastre ${monthLabel(origin)}</span>`:""}</td>
+  <td>${dateLabel(c.date)}<br><small class="muted">${c.dueDate?"Pago esperado: "+dateLabel(c.dueDate):"Sin fecha de pago prevista"}</small>${carry?`<br><span class="overdue-badge">Arrastre ${monthLabel(origin)}</span>`:""}</td>
   <td>${safe(cobroPerson(c))}</td>
   <td><strong>${safe(c.description||c.kind)}</strong>${c.sourceRecurringId?`<span class="recurring-badge">Mensual</span>`:""}${c.notes?`<br><small class="muted">${safe(c.notes)}</small>`:""}</td>
   <td class="num">${money(receivableAmountCRC(c))}${originalHint(c.amount,c.currency)}</td>
@@ -4395,7 +4404,7 @@ function renderSharedCharges(){
   const visibleIds=new Set(displayRows.map(c=>c.id));[...sharedSelectedChargeIds].forEach(cid=>{if(!visibleIds.has(cid))sharedSelectedChargeIds.delete(cid)});
   const currentTotal=currentRows.reduce((s,c)=>s+receivableAmountCRC(c),0),currentPaid=currentRows.reduce((s,c)=>s+cobroReceivedCRC(c),0);
   const carryRows=displayRows.filter(c=>isReceivableCarryover(c,month)),carryPending=carryRows.reduce((s,c)=>s+cobroRemainingCRC(c),0),pending=displayRows.reduce((s,c)=>s+cobroRemainingCRC(c),0);
-  const today=todayIso(),overdue=displayRows.filter(c=>(c.dueDate||c.date)<today).reduce((s,c)=>s+cobroRemainingCRC(c),0);
+  const today=todayIso(),overdue=displayRows.filter(c=>c.dueDate&&c.dueDate<today).reduce((s,c)=>s+cobroRemainingCRC(c),0);
   const recoveredMonth=(data.sharedCharges||[]).reduce((sum,c)=>{
     const abonos=(c.payments||[]).filter(p=>p.date?.startsWith(month)).reduce((n,p)=>n+num(p.amount),0);
     const legacy=!(c.payments||[]).length&&c.status==="paid"&&c.paidAt?.startsWith(month)?num(c.amount):0;
@@ -5555,13 +5564,15 @@ function bind(){
     document.getElementById("assignSharedGroupDialog").close();applyGroupToSelected(gid);
   });
   document.getElementById("scGroup").addEventListener("change",()=>{const g=sharedGroupById(document.getElementById("scGroup").value);if(g&&g.person)document.getElementById("scPerson").value=g.person});
+  document.getElementById("scDueDate").addEventListener("change",oneSyncCobroReminderField);
   document.getElementById("sharedGroupForm").addEventListener("submit",e=>{
     e.preventDefault();const gid=document.getElementById("sgId").value,old=data.sharedChargeGroups.find(g=>g.id===gid),obj={id:gid||id(),name:document.getElementById("sgName").value.trim(),person:document.getElementById("sgPerson").value.trim(),notes:document.getElementById("sgNotes").value.trim(),cutDay:old?.cutDay||0,status:old?.status||"active",closedAt:old?.closedAt||"",closedReason:old?.closedReason||""};
     const i=data.sharedChargeGroups.findIndex(g=>g.id===gid);i>=0?data.sharedChargeGroups[i]={...data.sharedChargeGroups[i],...obj}:data.sharedChargeGroups.push(obj);save();document.getElementById("sharedGroupDialog").close();refreshSharedGroupSelects(obj.id);renderSharedCharges();
   });
   document.getElementById("sharedChargeForm").addEventListener("submit",e=>{
     e.preventDefault();
-    const cid=document.getElementById("scId").value,existing=data.sharedCharges.find(c=>c.id===cid),status=document.getElementById("scStatus").value,recurring=document.getElementById("scRecurring").checked,chargeMonth=document.getElementById("scMonth").value,date=document.getElementById("scDate").value,dueDate=document.getElementById("scDueDate").value||date;
+    const cid=document.getElementById("scId").value,existing=data.sharedCharges.find(c=>c.id===cid),status=document.getElementById("scStatus").value,recurring=document.getElementById("scRecurring").checked,chargeMonth=document.getElementById("scMonth").value,date=document.getElementById("scDate").value,dueDate=document.getElementById("scDueDate").value;
+    if(recurring&&!dueDate)return alert("Para repetir un cobro cada mes, elegí la fecha en que esperás recibir el pago.");
     if(existing&&(existing.payments||[]).length&&normalizeCurrency(document.getElementById("scCurrency").value)!==normalizeCurrency(existing.currency))
       return alert("No podés cambiar la moneda de un cobro con abonos registrados. Revertí los abonos primero para evitar inconsistencias.");
     let sourceRecurringId=existing?.sourceRecurringId||"";
@@ -5894,10 +5905,10 @@ function initLiquidityChartInteraction(){
 }
 
 
-function oneCobroDueDate(c){return c.dueDate||c.date||todayIso()}
+function oneCobroDueDate(c){return c.dueDate||""}
 function onePendingCobros(){
   return [...(data.sharedCharges||[])].filter(c=>cobroRemainingOriginal(c)>.005).sort((a,b)=>
-    oneCobroDueDate(a).localeCompare(oneCobroDueDate(b))||String(a.person||"").localeCompare(String(b.person||""),"es"));
+    (oneCobroDueDate(a)||"9999-12-31").localeCompare(oneCobroDueDate(b)||"9999-12-31")||String(a.person||"").localeCompare(String(b.person||""),"es"));
 }
 function renderCobrosReminderWidget(){
   const card=document.getElementById("dashboardCollectionsCard");
@@ -5907,7 +5918,7 @@ function renderCobrosReminderWidget(){
   if(!active)return;
   if((data.receivableRecurring||[]).length)ensureRecurringChargesForMonth(todayIso().slice(0,7));
   const today=todayIso(),upTo=addDaysIso(today,7),pending=onePendingCobros();
-  const overdue=pending.filter(c=>oneCobroDueDate(c)<today),dueSoon=pending.filter(c=>oneCobroDueDate(c)<=upTo);
+  const overdue=pending.filter(c=>oneCobroDueDate(c)&&oneCobroDueDate(c)<today),dueSoon=pending.filter(c=>oneCobroDueDate(c)&&oneCobroDueDate(c)<=upTo);
   const actionable=pending.filter(c=>cobroReminderStart(c)<=today);
   const eligible=pending.filter(c=>!c.snoozedUntil||c.snoozedUntil<=today);
   const visible=(actionable.length?actionable:eligible).slice(0,5),total=pending.reduce((sum,c)=>sum+cobroRemainingCRC(c),0);
@@ -5915,7 +5926,7 @@ function renderCobrosReminderWidget(){
     `<span>Pendiente total: <strong>${money(total)}</strong></span><span>${overdue.length} vencidos</span><span>${actionable.length} recordatorios activos · ${dueSoon.length} próximos/vencidos</span>`;
   document.getElementById("dashboardCollectionsList").innerHTML=visible.length?visible.map(c=>{
     const date=oneCobroDueDate(c),days=Math.round((Date.parse(date+"T00:00:00Z")-Date.parse(today+"T00:00:00Z"))/86400000);
-    const status=days<0?"Vencido":days===0?"Cobrar hoy":days===1?"Mañana":`Recordar ${dateLabel(date)}`;
+    const status=!date?"Sin fecha prevista":days<0?"Vencido":days===0?"Cobrar hoy":days===1?"Mañana":`Recordar ${dateLabel(date)}`;
     const group=sharedGroupById(c.groupId),person=c.person||group?.person||"Sin persona";
     return `<div class="one-collections-row"><div><strong>${safe(person)} · ${safe(c.description||c.kind)}</strong><small class="${days<=0?"one-collections-overdue":""}">${safe(status)}${group?` · ${safe(group.name)}`:""}</small></div><span class="one-collections-amount">${money(cobroRemainingCRC(c))}</span><button type="button" class="btn secondary small" data-snooze-cobro="${safe(c.id)}" aria-label="Posponer recordatorio de ${safe(c.description)} tres días">Posponer 3 días</button></div>`;
   }).join(""):`<div class="empty">${pending.length?"Los recordatorios pendientes están pospuestos. Consultalos desde Cobros.":"Todavía no hay cobros pendientes. Podés agregar el primero desde Cobros."}</div>`;
