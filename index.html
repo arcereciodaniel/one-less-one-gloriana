@@ -5920,8 +5920,7 @@ function renderCobrosReminderWidget(){
   const today=todayIso(),upTo=addDaysIso(today,7),pending=onePendingCobros();
   const overdue=pending.filter(c=>oneCobroDueDate(c)&&oneCobroDueDate(c)<today),dueSoon=pending.filter(c=>oneCobroDueDate(c)&&oneCobroDueDate(c)<=upTo);
   const actionable=pending.filter(c=>cobroReminderStart(c)<=today);
-  const eligible=pending.filter(c=>!c.snoozedUntil||c.snoozedUntil<=today);
-  const visible=(actionable.length?actionable:eligible).slice(0,5),total=pending.reduce((sum,c)=>sum+cobroRemainingCRC(c),0);
+  const visible=actionable.slice(0,5),total=pending.reduce((sum,c)=>sum+cobroRemainingCRC(c),0);
   document.getElementById("dashboardCollectionsSummary").innerHTML=
     `<span>Pendiente total: <strong>${money(total)}</strong></span><span>${overdue.length} vencidos</span><span>${actionable.length} recordatorios activos · ${dueSoon.length} próximos/vencidos</span>`;
   document.getElementById("dashboardCollectionsList").innerHTML=visible.length?visible.map(c=>{
@@ -5929,7 +5928,7 @@ function renderCobrosReminderWidget(){
     const status=!date?"Sin fecha prevista":days<0?"Vencido":days===0?"Cobrar hoy":days===1?"Mañana":`Recordar ${dateLabel(date)}`;
     const group=sharedGroupById(c.groupId),person=c.person||group?.person||"Sin persona";
     return `<div class="one-collections-row"><div><strong>${safe(person)} · ${safe(c.description||c.kind)}</strong><small class="${days<=0?"one-collections-overdue":""}">${safe(status)}${group?` · ${safe(group.name)}`:""}</small></div><span class="one-collections-amount">${money(cobroRemainingCRC(c))}</span><button type="button" class="btn secondary small" data-snooze-cobro="${safe(c.id)}" aria-label="Posponer recordatorio de ${safe(c.description)} tres días">Posponer 3 días</button></div>`;
-  }).join(""):`<div class="empty">${pending.length?"Los recordatorios pendientes están pospuestos. Consultalos desde Cobros.":"Todavía no hay cobros pendientes. Podés agregar el primero desde Cobros."}</div>`;
+  }).join(""):`<div class="empty">${pending.length?"No hay recordatorios pendientes de atención. Los cobros sin fecha siguen disponibles en Cobros.":"Todavía no hay cobros pendientes. Podés agregar el primero desde Cobros."}</div>`;
 }
 
 
