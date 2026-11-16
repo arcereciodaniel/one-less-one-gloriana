@@ -1426,6 +1426,20 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
 .one-central-cobro-mount .form-grid input,.one-central-cobro-mount .form-grid select{max-width:100%}
 @media(max-width:550px){.one-move-dialog .m2-quick-types button{font-size:.7rem;padding:8px 9px}.one-central-cobro-mount .form-grid{grid-template-columns:1fr}}
 
+
+.one-cobro-simple-form{grid-template-columns:1fr!important;gap:13px}
+.one-cobro-simple-form>.field,.one-cobro-simple-form>.dialog-actions{grid-column:1/-1}
+.one-cobro-simple-form .field>small{display:block;margin-top:5px;color:var(--muted);font-size:.73rem}
+.one-cobro-simple-form .money-input{grid-template-columns:minmax(0,1fr) 100px}
+.one-cobro-simple-form .money-input input{font-size:1.35rem;font-weight:700;min-height:45px}
+.one-cobro-advanced{grid-column:1/-1;border:1px solid var(--border);border-radius:9px;background:var(--surface);padding:12px 14px}
+.one-cobro-advanced>summary{cursor:pointer;color:var(--text);font-weight:650;font-size:.8rem}
+.one-cobro-advanced>summary span{color:var(--muted);font-weight:400;margin-left:5px;font-size:.73rem}
+.one-cobro-advanced-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding-top:13px}
+.one-cobro-advanced-grid>.field.wide{grid-column:1/-1}
+.one-cobro-advanced-grid .check-row{margin:3px 0}
+.one-cobro-advanced-grid #scStatus[hidden],.one-cobro-advanced-grid #scReminderField[hidden]{display:none!important}
+@media(max-width:520px){.one-cobro-advanced-grid{grid-template-columns:1fr}.one-cobro-advanced-grid>.field{grid-column:1/-1}}
 .one-saving-category-label{display:block;font-size:.69rem;color:var(--muted);margin-top:3px}
 </style>
 </head>
@@ -1960,23 +1974,26 @@ header nav button.one-add-module-button:focus-visible{outline:2px solid var(--ac
   <div class="dialog-body">
 <button class="dialog-close" type="button" aria-label="Cerrar">×</button>
     <h2 id="sharedChargeDialogTitle">Agregar cobro</h2>
-    <form id="sharedChargeForm" class="form-grid">
+    <form id="sharedChargeForm" class="form-grid one-cobro-simple-form">
       <input type="hidden" id="scId">
-      <div class="field"><label>Grupo (opcional)</label><select id="scGroup"></select></div>
-      <div class="field"><label>Persona</label><input id="scPerson" required></div>
-      <div class="field"><label>Mes de cobro</label><input type="month" id="scMonth" required></div>
-      <div class="field"><label>Fecha del cargo</label><input type="date" id="scDate" required></div>
-       <div class="field"><label>Recordarme cobrar el</label><input type="date" id="scDueDate" required></div>
-      <div class="field"><label>Avisarme antes</label><select id="scReminderDays"><option value="0">El mismo día</option><option value="1">1 día antes</option><option value="3" selected>3 días antes</option><option value="7">7 días antes</option></select></div>
-      <div class="field"><label>Tipo</label><select id="scKind"><option>Suscripción</option><option>Préstamo</option><option>Compra compartida</option><option>Uso / consumo</option><option>Otro</option></select></div>
-      <div class="field wide"><label>Concepto / detalle</label><input id="scDescription" placeholder="Ej. Netflix, préstamo, cena, compra de entradas" required></div>
-      <div class="field"><label>Monto</label><div class="money-input"><input id="scAmount" type="number" min="0" step="0.01" required><select id="scCurrency"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
-      <div class="field"><label>Estado</label><select id="scStatus"><option value="pending">Pendiente</option><option value="paid">Pagado</option></select></div>
-      <div class="field wide">
-        <label class="check-row"><input type="checkbox" id="scRecurring"><span><strong>Repetir automáticamente cada mes</strong><small>Úsalo para suscripciones o cargos fijos. One Less One creará el cobro en los meses siguientes hasta que lo elimines/canceles.</small></span></label>
-      </div>
-      <div class="field wide"><label>Notas</label><input id="scNotes"></div>
-      <div class="dialog-actions wide"><button type="button" class="btn secondary" id="cancelSharedChargeBtn">Cancelar</button><button type="submit" class="btn">Guardar</button></div>
+      <input type="month" id="scMonth" required hidden aria-hidden="true">
+      <div class="field wide"><label for="scPerson">¿Quién te debe?</label><input id="scPerson" placeholder="Nombre de la persona" required></div>
+      <div class="field wide"><label for="scDescription">¿Qué te deben?</label><input id="scDescription" placeholder="Ej. Una cena, un préstamo o una compra" required></div>
+      <div class="field wide"><label for="scAmount">¿Cuánto te deben?</label><div class="money-input"><input id="scAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><select id="scCurrency" aria-label="Moneda del cobro"><option value="CRC">CRC ₡</option><option value="USD">USD $</option></select></div></div>
+      <div class="field wide"><label for="scDueDate">¿Cuándo esperás que te paguen? <small>(opcional)</small></label><input type="date" id="scDueDate"><small>Si no sabés la fecha, dejala vacía. El cobro no se marcará como vencido.</small></div>
+      <details id="scAdvanced" class="one-cobro-advanced">
+        <summary>Más opciones <span>Grupo, recordatorio y repetición</span></summary>
+        <div class="one-cobro-advanced-grid">
+          <div class="field"><label for="scGroup">Grupo (opcional)</label><select id="scGroup"></select></div>
+          <div class="field"><label for="scKind">Tipo de cobro</label><select id="scKind"><option>Compra compartida</option><option>Préstamo</option><option>Suscripción</option><option>Uso / consumo</option><option>Otro</option></select></div>
+          <div class="field" id="scReminderField" hidden><label for="scReminderDays">Recordarme</label><select id="scReminderDays"><option value="0" selected>En la fecha esperada</option><option value="1">1 día antes</option><option value="3">3 días antes</option><option value="7">7 días antes</option></select></div>
+          <div class="field"><label for="scDate">Fecha de registro</label><input type="date" id="scDate" required></div>
+          <div class="field wide"><label class="check-row"><input type="checkbox" id="scRecurring"><span><strong>Repetir cada mes</strong><small>Solo si esperás este cobro mensualmente. Necesita una fecha esperada de pago.</small></span></label></div>
+          <div class="field wide"><label for="scNotes">Notas (opcional)</label><input id="scNotes" placeholder="Algo que querás recordar"></div>
+          <select id="scStatus" hidden aria-hidden="true"><option value="pending">Pendiente</option><option value="paid">Pagado</option></select>
+        </div>
+      </details>
+      <div class="dialog-actions wide"><button type="button" class="btn secondary" id="cancelSharedChargeBtn">Cancelar</button><button type="submit" class="btn">Guardar cobro</button></div>
     </form>
   </div>
 </dialog>
