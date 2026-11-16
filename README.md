@@ -1,6 +1,6 @@
-# one - one — Gloriana
+# One Less One — Gloriana
 
-Versión personalizada de **one - one** basada en el código de **one-less-one-lab** (v8.4.0). Incluye Inicio, Presupuesto y Movimientos, además de las herramientas opcionales Deudas, Cobros y Metas.
+Versión personalizada de **One Less One** basada en el código de **one-less-one-lab** (v8.4.0). Incluye Inicio, Presupuesto y Movimientos, además de las herramientas opcionales Deudas, Cobros y Metas.
 
 ## Migración automática desde Finanzas de Gloriana v1.3.1
 
