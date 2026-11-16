@@ -25,7 +25,11 @@ const seed={
  settings:{fx:500,fxBuy:500,fxSell:500,displayCurrency:"CRC"},
  periods:[{key:"2026-11-Q1",quarter:"2026-T4",n:1,budgetMonth:"2026-11",fortnight:1,
  date:"2026-10-28",opening:40000,income:0,otherIncome:0,budgets:{},categoryBudgets:{}}],
- movements:[],reconciliations:[],debts:[],categories:[],reserves:[],reserveMovements:[],
+ movements:[],reconciliations:[],debts:[],categories:[
+  {id:"cat-super",name:"Supermercado",type:"Gasto",group:"Necesidades",budgetable:true,active:true,sort:10},
+  {id:"cat-trans",name:"Transporte",type:"Gasto",group:"Necesidades",budgetable:true,active:true,sort:20},
+  {id:"cat-sal",name:"Salario",type:"Ingreso",group:"Ingresos",budgetable:true,active:true,sort:10}
+ ],reserves:[],reserveMovements:[],
  sharedCharges:[],sharedChargeGroups:[],receivableRecurring:[]
 };
 w.localStorage.setItem(storageKey,JSON.stringify(seed));
